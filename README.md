@@ -8,9 +8,9 @@ You can find this file at the following path: `speakeasy-python-client-library/d
 
 To install speakeasy in your local environment, use the following command:
 ```shell
-pip install [local]/[path]/[to]/[your]/speakeasy-python-client-library/dist/speakeasypy-1.0.0-py3-none-any.whl
+pip install ./speakeasy-python-client-library/dist/speakeasypy-1.0.0-py3-none-any.whl
 ```
-Please replace `[local]/[path]/[to]/[your]` with the actual path to the directory containing the `speakeasypy-1.0.0-py3-none-any.whl` file.
+Please replace `.` with the actual path to the directory containing the `speakeasypy-1.0.0-py3-none-any.whl` file.
 
 ### 2. Initialize the Speakeasy Python framework and login
 
@@ -123,7 +123,7 @@ Distribute `speakeasypy` and test it locally:
 The following command generates the source code and a `whl` file, then you can test it.
 ```shell
 python setup.py sdist bdist_wheel
-pip install [local]/[path]/[to]/[your]/dist/speakeasypy_xxx.whl
+pip install ./dist/speakeasypy_xxx.whl
 ```
 
 Note: make sure you have installed `wheel` for development.
