@@ -59,5 +59,5 @@ class Agent:
 
 
 if __name__ == '__main__':
-    demo_bot = Agent("bot_name", "bot_pass")
+    demo_bot = Agent("restless-bear", "I8qbH7J4")
     demo_bot.listen()
