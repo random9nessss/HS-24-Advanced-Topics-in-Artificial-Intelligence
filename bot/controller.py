@@ -1,6 +1,8 @@
 from speakeasypy import Speakeasy, Chatroom
 from typing import List
 import time
+# from dataset import Dataset
+import requests
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 listen_freq = 2
@@ -8,6 +10,7 @@ listen_freq = 2
 
 class Agent:
     def __init__(self, username, password):
+        # self.dataset = Dataset()
         self.username = username
         # Initialize the Speakeasy Python framework and login.
         self.speakeasy = Speakeasy(host=DEFAULT_HOST_URL, username=username, password=password)
@@ -34,7 +37,16 @@ class Agent:
                     # Implement your agent here #
 
                     # Send a message to the corresponding chat room using the post_messages method of the room object.
-                    room.post_messages(f"Received your message: '{message.message}' ")
+                    # room.post_messages(f"Received your message: '{message.message}' ")
+                    try:
+                        url = 'http://localhost:5000/sparql'
+                        headers = {'Content-Type': 'application/json'}
+                        data = {"query": message.message}
+                        r = requests.post(url, json=data, headers=headers)
+                        room.post_messages(r.text)
+                    except Exception as e:
+                        print(e)
+
                     # Mark the message as processed, so it will be filtered out when retrieving new messages.
                     room.mark_as_processed(message)
 
@@ -56,6 +68,7 @@ class Agent:
     @staticmethod
     def get_time():
         return time.strftime("%H:%M:%S, %d-%m-%Y", time.localtime())
+
 
 
 if __name__ == '__main__':

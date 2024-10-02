@@ -7,3 +7,5 @@ rdflib
 networkx
 pandas
 plotly
+flask
+flask-cors

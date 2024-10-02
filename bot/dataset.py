@@ -4,117 +4,104 @@ import csv
 import pandas as pd
 import rdflib
 
-graph = rdflib.Graph()
-graph.parse('../dataset/14_graph.nt', format='turtle')
+from flask import Flask, request
+import logging
+from flask_cors import CORS
 
-# prefixes used in the graph
-WD = Namespace('http://www.wikidata.org/entity/')
-WDT = Namespace('http://www.wikidata.org/prop/direct/')
-SCHEMA = Namespace('http://schema.org/')
-DDIS = Namespace('http://ddis.ch/atai/')
+app = Flask(__name__)
+CORS(app)
 
-print("helolo")
+# Increase logging level
+app.logger.setLevel(logging.DEBUG)
 
-entities = set(graph.subjects()) | {s for s in graph.objects() if isinstance(s, URIRef)}
-predicates = set(graph.predicates())
-literals = {s for s in graph.objects() if isinstance(s, Literal)}
-with_type = set(graph.subjects(WDT['P31'], None))
-with_super = set(graph.subjects(WDT['P279'], None))
-types = set(graph.objects(None, WDT['P31']))
-supers = set(graph.objects(None, WDT['P279']))
-with_label = set(graph.subjects(RDFS.label, None))
+class Dataset:
 
-n_ents = len(entities)
-n_rels = len(predicates)
-n_lits = len(literals)
-t_tot = len(graph)
-t_ent = len([1 for s,p,o in graph.triples((None, None, None)) if isinstance(o, URIRef)])
-t_lit = t_tot - t_ent
-n_notype = len(entities - with_type - with_super)
-n_notype_flt = len(entities - with_type - with_super - types - supers)
+    def __init__(self):
+        self.__graph = self.__init_graph()
 
-pd.DataFrame([
-    ('number of entities', f'{n_ents:n}'),
-    ('number of literals', f'{n_lits:n}'),
-    ('number of predicates', f'{n_rels:n}'),
-    ('number of triples', f'{t_tot:n}'),
-    ('number of ent-ent triples', f'{t_ent:n}'),
-    ('number of ent-lit triples', f'{t_lit:n}'),
-    ('number of entities w/o label', f'{len(entities - with_label):n}'),
-    ('number of predicates w/o label', f'{len(predicates - with_label):n}'),
-    ('number of entities w/o type', f'{n_notype:n}'),
-    ('number of instances w/o type', f'{n_notype_flt:n}'),
-    ])
+    def __init_graph(self):
 
-print("hello")
+        graph = rdflib.Graph()
+        graph.parse('../dataset/14_graph.nt', format='turtle')
+
+        """
+        WD = Namespace('http://www.wikidata.org/entity/')
+        WDT = Namespace('http://www.wikidata.org/prop/direct/')
+        SCHEMA = Namespace('http://schema.org/')
+        DDIS = Namespace('http://ddis.ch/atai/')
 
 
-top250 = set(open('../dataset/imdb-top-250.t').read().split('\n')) - {''}
+        entities = set(graph.subjects()) | {s for s in graph.objects() if isinstance(s, URIRef)}
+        predicates = set(graph.predicates())
+        literals = {s for s in graph.objects() if isinstance(s, Literal)}
+        with_type = set(graph.subjects(WDT['P31'], None))
+        with_super = set(graph.subjects(WDT['P279'], None))
+        types = set(graph.objects(None, WDT['P31']))
+        supers = set(graph.objects(None, WDT['P279']))
+        with_label = set(graph.subjects(RDFS.label, None))
 
-pd.DataFrame([
-    ('Top-250 coverage', '{:n}'.format(
-        len(top250 & {str(o) for o in graph.objects(None, WDT.P345) if o.startswith('tt')}))),
-    ('Entities with IMDb ID', '{:n}'.format(
-        len({str(o) for o in graph.objects(None, WDT.P345) if o.startswith('tt')}))),
-    ('Plots linked to a movie', '{:n}'.format(
-        len({qid for qid, plot in csv.reader(open('../dataset/plots.csv')) if URIRef(qid) in entities}))),
-    ('Comments linked to a movie', '{:n}'.format(
-        len([qid for qid, rating, sentiment, comment in csv.reader(open('../dataset/user-comments.csv')) if URIRef(qid) in entities]))),
-    ('Movies having at least one comment', '{:n}'.format(
-        len({qid for qid, rating, sentiment, comment in csv.reader(open('../dataset/user-comments.csv')) if URIRef(qid) in entities}))),
-    ])
+        n_ents = len(entities)
+        n_rels = len(predicates)
+        n_lits = len(literals)
+        t_tot = len(graph)
+        t_ent = len([1 for s,p,o in graph.triples((None, None, None)) if isinstance(o, URIRef)])
+        t_lit = t_tot - t_ent
+        n_notype = len(entities - with_type - with_super)
+        n_notype_flt = len(entities - with_type - with_super - types - supers)
+
+        pd.DataFrame([
+            ('number of entities', f'{n_ents:n}'),
+            ('number of literals', f'{n_lits:n}'),
+            ('number of predicates', f'{n_rels:n}'),
+            ('number of triples', f'{t_tot:n}'),
+            ('number of ent-ent triples', f'{t_ent:n}'),
+            ('number of ent-lit triples', f'{t_lit:n}'),
+            ('number of entities w/o label', f'{len(entities - with_label):n}'),
+            ('number of predicates w/o label', f'{len(predicates - with_label):n}'),
+            ('number of entities w/o type', f'{n_notype:n}'),
+            ('number of instances w/o type', f'{n_notype_flt:n}'),
+            ])
+
+        top250 = set(open('../dataset/imdb-top-250.t').read().split('\n')) - {''}
+
+        ent_lit_preds = {p for s,p,o in graph.triples((None, None, None)) if isinstance(o, Literal)}
+
+        roots = {
+            WD['Q8242']:        'literature',
+            WD['Q5']:           'human',
+            WD['Q483394']:      'genre',
+            WD['Q95074']:       'character',
+            WD['Q11424']:       'film',
+            WD['Q15416']:       'tv',
+            WD['Q618779']:      'award',
+            WD['Q27096213']:    'geographic',
+            WD['Q43229']:       'organisation',
+            WD['Q34770']:       'language',
+            WD['Q7725310']:     'series',
+            WD['Q47461344']:    'written work',
+        }
+        """
+        print("Stage 3 - SURVIVED")
+        return graph
+
+    def execute_sparql(self, query: str) -> list[str]:
+        print("Received Query: ", query)
+        result = [str(s) for s, in self.__graph.query(query)]
+        print(result)
+        return result
+
+dataset = Dataset()
+
+@app.route('/sparql', methods=["POST"])
+def sparql():
+    return dataset.execute_sparql(request.json.get('query'))
 
 
-# literal predicates
-ent_lit_preds = {p for s,p,o in graph.triples((None, None, None)) if isinstance(o, Literal)}
-print(ent_lit_preds)
+if __name__ == "__main__":
+    app.run(port=5000, debug=True, host='0.0.0.0')
 
 
-# literal
-pd.DataFrame([
-    ('# entities', '{:n}'.format(
-        len(entities))),
-    ('DDIS.rating', '{:n}'.format(
-        len(set(graph.subjects(DDIS.rating, None))))),
-    ('DDIS.tag', '{:n}'.format(
-        len(set(graph.subjects(DDIS.tag, None))))),
-    ('SCHEMA.description', '{:n}'.format(
-        len({s for s in graph.subjects(SCHEMA.description, None) if s.startswith(WD)}))),
-    ('RDFS.label', '{:n}'.format(
-        len({s for s in graph.subjects(RDFS.label, None) if s.startswith(WD)}))),
-    ('WDT.P18 (wikicommons image)', '{:n}'.format(
-        len(set(graph.subjects(WDT.P18, None))))),
-    ('WDT.P2142 (box office)', '{:n}'.format(
-        len(set(graph.subjects(WDT.P2142, None))))),
-    ('WDT.P345 (IMDb ID)', '{:n}'.format(
-        len(set(graph.subjects(WDT.P345, None))))),
-    ('WDT.P577 (publication date)', '{:n}'.format(
-        len(set(graph.subjects(WDT.P577, None))))),
-    ])
-
-
-
-
-
-
-roots = {
-    WD['Q8242']:        'literature',
-    WD['Q5']:           'human',
-    WD['Q483394']:      'genre',
-    WD['Q95074']:       'character',
-    WD['Q11424']:       'film',
-    WD['Q15416']:       'tv',
-    WD['Q618779']:      'award',
-    WD['Q27096213']:    'geographic',
-    WD['Q43229']:       'organisation',
-    WD['Q34770']:       'language',
-    WD['Q7725310']:     'series',
-    WD['Q47461344']:    'written work',
-}
-
-
-
-
+"""
 # top user-rated movies
 [str(s) for s, in graph.query('''
     PREFIX ddis: <http://ddis.ch/atai/> 
@@ -283,6 +270,6 @@ b = [(str(d), str(s)) for s, d in graph.query(header + '''
 
 assert (a == b)
 print(a)
-
+"""
 
 
