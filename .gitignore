@@ -166,4 +166,8 @@ cython_debug/
 .idea/
 venv
 .venv
-dataset
+
+
+/dataset/14_graph.tsv
+/dataset/entity_embeds.npy
+/dataset/14_graph.nt
