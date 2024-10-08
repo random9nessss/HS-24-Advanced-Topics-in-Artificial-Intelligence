@@ -4,7 +4,7 @@ from question_types.sparql import SparqlQueries
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | %(message)s'
+    format='%(asctime)s | %(levelname)s | %(funcName)s | %(message)s'
 )
 
 
