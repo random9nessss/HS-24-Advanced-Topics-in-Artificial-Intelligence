@@ -88,8 +88,7 @@ class SparqlQueries:
                         {query}
                     """
 
+        # logging.info(full_query)
         result = self.graph.query(full_query)
+        # logging.info(result)
         return result
-
-
-# sparql = SparqlQueries(file_path="./movie-bot/dataset/14_graph.nt")
