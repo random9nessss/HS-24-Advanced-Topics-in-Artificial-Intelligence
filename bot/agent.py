@@ -33,9 +33,15 @@ class Agent:
                         f"- new message #{message.ordinal}: '{message.message}' "
                         f"- {self.get_time()}")
 
-                    # Send a message to the corresponding chat room using the post_messages method of the room object.
-                    answer = self.bot_service.react(message.message)
-                    room.post_messages(f"Received your message: '{answer}' ")
+                    ## ---------------------------------------------------- ##
+                    # Implement your agent here #
+                    ## ---------------------------------------------------- ##
+                    response_str = self.bot_service.react(message.message)
+                    room.post_messages(f"{response_str}")
+                    ## ---------------------------------------------------- ##
+                    # Implement your agent here #
+                    ## ---------------------------------------------------- ##
+
 
                     # Mark the message as processed, so it will be filtered out when retrieving new messages.
                     room.mark_as_processed(message)
@@ -48,16 +54,7 @@ class Agent:
                         f"- new reaction #{reaction.message_ordinal}: '{reaction.type}' "
                         f"- {self.get_time()}")
 
-                    ## ---------------------------------------------------- ##
-                    # Implement your agent here #
-                    ## ---------------------------------------------------- ##
-                    response_str = self.bot_service.react(reaction.message)
-                    room.post_messages(f"{response_str}")
-                    ## ---------------------------------------------------- ##
-                    # Implement your agent here #
-                    ## ---------------------------------------------------- ##
-
-                    # room.post_messages(f"Received your reaction: '{reaction.type}' ")
+                    room.post_messages(f"Received your reaction: '{reaction.type}' ")
                     room.mark_as_processed(reaction)
 
             time.sleep(listen_freq)

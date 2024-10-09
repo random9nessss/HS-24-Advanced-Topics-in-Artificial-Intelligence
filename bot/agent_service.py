@@ -16,8 +16,11 @@ class AgentService:
         self.test_queries()
 
     def react(self, message: str) -> str:
-        reaction = self.execute_sparql(message)
-        return f"Here is the result for your query:\n{reaction}"
+        try:
+            reaction = self.execute_sparql(message)
+        except Exception as e:
+            return f"Your message does not seem to be a valid SPARQL-query. Please try again."
+        return reaction
 
     def execute_sparql(self, query: str) -> str:
         sparql_result = self.__sparql.execute_query(query)
@@ -26,8 +29,12 @@ class AgentService:
             for item in (row if isinstance(row, tuple) else [row])
         ]
         result_str = ", ".join(result_lst)
-        logging.info(f"Query result: {result_str}")
-        return result_str
+
+        if len(result_lst) == 1:
+            return f"Here is the result for your query: {result_str}"
+        elif len(result_lst) > 1:
+            return f"Here are the results for your query: {result_str}"
+        return "Your query did not match anything."
 
     def test_queries(self):
 
