@@ -16,8 +16,8 @@ class AgentService:
         self.test_queries()
 
     def react(self, message: str) -> str:
-        self.execute_sparql(message)
-        return f"Here is the result for your query:\n{message}"
+        reaction = self.execute_sparql(message)
+        return f"Here is the result for your query:\n{reaction}"
 
     def execute_sparql(self, query: str) -> str:
         sparql_result = self.__sparql.execute_query(query)
