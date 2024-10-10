@@ -173,3 +173,5 @@ venv
 /dataset/14_graph.nt
 
 /development/MovieData/**
+/development/exports/
+/development/input/
