@@ -4,7 +4,7 @@ import time
 from agent_service import AgentService
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
-listen_frequery = 2
+listen_freq = 2
 
 
 class Agent:

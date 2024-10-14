@@ -175,3 +175,9 @@ venv
 /development/MovieData/**
 /development/exports/
 /development/input/
+
+/development/glove.6B.50d.txt
+/development/glove.6B.100d.txt
+/development/glove.6B.200d.txt
+/development/glove.6B.300d.txt
+/development/glove.6B.zip
