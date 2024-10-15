@@ -147,3 +147,4 @@ yarl==1.14.0
 
 tabulate
 llama-cpp-python
+nltk
