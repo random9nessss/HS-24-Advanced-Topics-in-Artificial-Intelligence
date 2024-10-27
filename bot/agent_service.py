@@ -1,6 +1,7 @@
 import logging
 
 from question_types.sparql import SparqlQueries
+from question_types.factual import FactualQuestions
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,13 +14,15 @@ class AgentService:
     def __init__(self):
         # self.__sparql = SparqlQueries("../dataset/minimal_graph.nt")
         self.__sparql = SparqlQueries("../dataset/14_graph.nt")
-        self.test_queries()
+        self.__factual = FactualQuestions()
+        #self.test_queries()
 
     def react(self, message: str) -> str:
         try:
             reaction = self.execute_sparql(message)
         except Exception as e:
-            return f"Your message does not seem to be a valid SPARQL-query. Please try again."
+            reaction = self.execute_factual(message)
+            return reaction
         return reaction
 
     def execute_sparql(self, query: str) -> str:
@@ -35,6 +38,10 @@ class AgentService:
         elif len(result_lst) > 1:
             return f"Here are the results for your query: {result_str}"
         return "Your query did not match anything."
+
+    def execute_factual(self, query: str) -> str:
+        answer = self.__factual.answer_query(query)
+        return answer
 
     def test_queries(self):
 

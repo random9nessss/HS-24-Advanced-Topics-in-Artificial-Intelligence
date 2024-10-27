@@ -181,3 +181,6 @@ venv
 /development/glove.6B.200d.txt
 /development/exports/glove.6B/glove.6B.300d.txt
 /development/glove.6B.zip
+
+/database/extended_graph_triples.pkl
+/database/entity_db.json

@@ -28,10 +28,10 @@ class Agent:
                 # If only_partner=True, it filters out messages sent by the current bot.
                 # If only_new=True, it filters out messages that have already been marked as processed.
                 for message in room.get_messages(only_partner=True, only_new=True):
-                    print(
-                        f"\t- Chatroom {room.room_id} "
-                        f"- new message #{message.ordinal}: '{message.message}' "
-                        f"- {self.get_time()}")
+                    #print(
+                        #f"\t- Chatroom {room.room_id} "
+                        #f"- new message #{message.ordinal}: '{message.message}' "
+                        #f"- {self.get_time()}")
 
                     ## ---------------------------------------------------- ##
                     # Implement your agent here #
@@ -49,10 +49,10 @@ class Agent:
                 # Retrieve reactions from this chat room.
                 # If only_new=True, it filters out reactions that have already been marked as processed.
                 for reaction in room.get_reactions(only_new=True):
-                    print(
-                        f"\t- Chatroom {room.room_id} "
-                        f"- new reaction #{reaction.message_ordinal}: '{reaction.type}' "
-                        f"- {self.get_time()}")
+                    #print(
+                        #f"\t- Chatroom {room.room_id} "
+                        #f"- new reaction #{reaction.message_ordinal}: '{reaction.type}' "
+                        #f"- {self.get_time()}")
 
                     room.post_messages(f"Received your reaction: '{reaction.type}' ")
                     room.mark_as_processed(reaction)

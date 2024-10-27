@@ -44,7 +44,7 @@ class Speakeasy:
                 user_session_details = response
                 # store the session token
                 self.session_token = user_session_details.session_token
-                print("Login successful. Session token:", self.session_token)
+                #print("Login successful. Session token:", self.session_token)
             else:
                 logging.error("Login failed.")
         except Exception as e:
