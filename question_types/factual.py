@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 
 from database.database import DataBase
+from models.graph_embeddings import GraphEmbeddings
 from models.ner import NERParser
 from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
@@ -28,6 +29,8 @@ class FactualQuestions:
         logger.info("QuestionAnsweringAgent initialized.")
         self.ca = ConversationAgent(model_name="google/flan-t5-xl")
         logger.info("ConversationAgent initialized.")
+        self.ge = GraphEmbeddings(graph=self.db.db)
+        logger.info("GraphEmbeddings initialized.")
         logger.info("FactualQuestions class initialized successfully.")
 
     @measure_time
@@ -96,6 +99,9 @@ class FactualQuestions:
         context = context.drop(columns=elements_to_remove, errors='ignore')
         logger.debug(f"Context after removing unused columns: {context.columns}")
 
+        # Initial context for embeddings where original column names are required
+        initial_context = context.copy()
+
         # Rename columns
         columns_to_rename = {
             "cast member": "movie cast",
@@ -146,4 +152,7 @@ class FactualQuestions:
                                                     Question: {query}\nAnswer: {answer}""")
 
         logger.info(f"Final answer: '{formatted_answer}'")
-        return formatted_answer
+
+        embedding_answer = self.ge.answer_query_embedding(initial_context, top_columns)
+
+        return f"Graph:\n{formatted_answer}\n\nEmbeddings:\n{embedding_answer}"
