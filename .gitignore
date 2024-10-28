@@ -184,3 +184,7 @@ venv
 
 /database/extended_graph_triples.pkl
 /database/entity_db.json
+/dataset/.
+
+/development/export_entity_json.ipynb
+/development/export_predicate_json.ipynb

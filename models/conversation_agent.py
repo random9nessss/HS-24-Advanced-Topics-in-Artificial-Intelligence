@@ -3,7 +3,7 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from utils.utils import get_device
 
 class ConversationAgent:
-    def __init__(self, model_name="google/flan-t5-large", max_length=150):
+    def __init__(self, model_name="google/flan-t5-xl", max_length=150):
         self.device = get_device()
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name).to(self.device)
