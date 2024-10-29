@@ -13,6 +13,7 @@ from utils.utils import (
     find_closest_columns,
     get_top_matches,
     fuzzy_match,
+    clean_response,
     logger
 )
 
@@ -34,7 +35,7 @@ class FactualQuestions:
         logger.info("FactualQuestions class initialized successfully.")
 
     @measure_time
-    def answer_query(self, query):
+    def answer_query(self, query: str, last_user_query: str, last_assistant_response: str) -> str:
         logger.info(f"Received query: '{query}'")
         normalized_query = self.db.normalize_string(query)
         logger.debug(f"Normalized query: '{normalized_query}'")
@@ -67,7 +68,24 @@ class FactualQuestions:
 
         if not is_domain_specific:
             logger.info("Query is not domain-specific. Generating small talk response.")
-            small_talk = self.ca.generate_response(query)
+
+            last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
+            small_talk = self.ca.generate_response(f"""You are a knowledgeable, friendly assistant in a natural conversation with a user. Your goal is to respond thoughtfully to the user’s query, focusing on keeping the conversation engaging and flowing naturally.
+                                        
+                                                    User Query: "{query}"
+                                        
+                                                    {f'The last thing the user asked was: "{last_user_query}".' if last_user_query else ''}
+                                                    {f'Your last response was: "{last_assistant_response}".' if last_assistant_response else ''}
+                                        
+                                                    Guidelines:
+                                                    1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
+                                                    2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
+                                                    3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
+                                                    4. **Natural Flow**: Focus on the user’s latest query. If it introduces a new topic, respond directly to it. If it relates to recent context, build on it thoughtfully but don’t force references to past conversation if unnecessary.
+                                        
+                                                    Provide a response that keeps the conversation engaging, relevant, and natural.
+                                                    """)
+
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
@@ -89,8 +107,25 @@ class FactualQuestions:
 
         if context.empty:
             logger.warning("No context data found for the given query.")
+
             # Fallback Strategy
-            small_talk = self.ca.generate_response(query)
+            last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
+            small_talk = self.ca.generate_response(f"""You are a knowledgeable, friendly assistant in a natural conversation with a user. Your goal is to respond thoughtfully to the user’s query, focusing on keeping the conversation engaging and flowing naturally.
+
+                                                    User Query: "{query}"
+
+                                                    {f'The last thing the user asked was: "{last_user_query}".' if last_user_query else ''}
+                                                    {f'Your last response was: "{last_assistant_response}".' if last_assistant_response else ''}
+
+                                                    Guidelines:
+                                                    1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
+                                                    2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
+                                                    3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
+                                                    4. **Natural Flow**: Focus on the user’s latest query. If it introduces a new topic, respond directly to it. If it relates to recent context, build on it thoughtfully but don’t force references to past conversation if unnecessary.
+
+                                                    Provide a response that keeps the conversation engaging, relevant, and natural.
+                                                    """)
+
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
@@ -147,9 +182,18 @@ class FactualQuestions:
 
         answer = self.qa.query(query, filtered_context_df)
         logger.debug(f"Answer from QA model: '{answer}'")
-        formatted_answer = self.ca.generate_response(f""""Format the answer to the question into a sentence.
-                                                    If you think the answer is completely off, overrule with your own knowledge.
-                                                    Question: {query}\nAnswer: {answer}""")
+        formatted_answer = self.ca.generate_response(f"""You are a knowledgeable assistant specializing in movies. Your goal is to provide a clear and accurate response based on the given answer, ensuring it sounds natural and relevant to the user.
+                                                
+                                                     Question: "{query}"
+                                                     Given Answer: "{answer}"
+                                                
+                                                     Instructions:
+                                                     1. **Validate the Given Answer**: Carefully read the provided answer. If it appears accurate and relevant to the question, rephrase it in a conversational and polished way for the user.
+                                                     2. **Override Only if Necessary**: Only override the answer if it is completely nonsensical, irrelevant to movies, or obviously incorrect. Use your expertise in movies to provide a more accurate response in these cases.
+                                                     3. **Keep the Focus on Movies**: Remember that you are a movie bot, so your responses should naturally incorporate movie-related knowledge when necessary.
+                                                
+                                                     Provide a final response that sounds natural and trustworthy.
+                                                     """)
 
         logger.info(f"Final answer: '{formatted_answer}'")
 

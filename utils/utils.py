@@ -211,3 +211,9 @@ def get_top_matches(df, query_str, top_n=1):
 
     # Return the rows where 'node label' is in matched_labels
     return df[df['node label'].isin(matched_labels)]
+
+
+def clean_response(response: str) -> str:
+    response = re.sub(r'^Graph:\s*', '', response, flags=re.MULTILINE)
+    response = re.sub(r'Embeddings:.*', '', response, flags=re.DOTALL).strip()
+    return response

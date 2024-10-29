@@ -41,9 +41,10 @@ class SparqlQueries:
         and predefined SPARQL prefixes.
         """
         self.graph = rdflib.Graph()
-        logging.info(f"{BColors.OKGREEN}Parsing graph{BColors.ENDC}")
+        logging.info("Initializing SparqlQueries class...")
         self.graph.parse(file_path, format='turtle')
-        logging.info(f"{BColors.OKGREEN}Graph parsed{BColors.ENDC}")
+        logging.info(f"Graph parsed")
+        logging.info("SparqlQueries class initialized successfully.")
 
         self.schema_ddis = "<http://ddis.ch/atai/>"
         self.schema_wd = "<http://www.wikidata.org/entity/>"

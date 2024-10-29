@@ -1,5 +1,7 @@
-
+import logging
 from transformers import pipeline
+
+logging.getLogger("transformers").setLevel(logging.ERROR)
 
 class QuestionAnsweringAgent:
     def __init__(self):

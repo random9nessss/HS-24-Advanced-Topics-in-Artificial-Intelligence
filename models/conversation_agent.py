@@ -1,6 +1,11 @@
 import torch
+import logging
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from utils.utils import get_device
+from transformers.utils.logging import disable_progress_bar
+
+logging.getLogger("transformers").setLevel(logging.ERROR)
+disable_progress_bar()
 
 class ConversationAgent:
     def __init__(self, model_name="google/flan-t5-xl", max_length=150):

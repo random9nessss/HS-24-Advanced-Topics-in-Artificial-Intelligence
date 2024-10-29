@@ -14,6 +14,7 @@ class Agent:
         self.speakeasy = Speakeasy(host=DEFAULT_HOST_URL, username=username, password=password)
         self.speakeasy.login()  # This framework will help you log out automatically when the program terminates.
         self.bot_service = AgentService()
+        self.last_messages = {}
 
     def listen(self):
         while True:
@@ -36,8 +37,19 @@ class Agent:
                     ## ---------------------------------------------------- ##
                     # Implement your agent here #
                     ## ---------------------------------------------------- ##
-                    response_str = self.bot_service.react(message.message)
+
+                    if room.room_id not in self.last_messages:
+                        self.last_messages[room.room_id] = []
+
+                    last_exchange = self.last_messages[room.room_id][-1] if self.last_messages[room.room_id] else ("", "")
+                    last_user_query, last_assistant_response = last_exchange
+
+                    response_str = self.bot_service.react(message.message, last_user_query, last_assistant_response)
                     room.post_messages(f"{response_str}")
+
+                    self.last_messages[room.room_id].append((message.message, response_str))
+                    self.last_messages[room.room_id] = self.last_messages[room.room_id][-2:]
+
                     ## ---------------------------------------------------- ##
                     # Implement your agent here #
                     ## ---------------------------------------------------- ##

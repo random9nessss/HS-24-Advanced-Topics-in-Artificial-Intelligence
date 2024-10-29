@@ -17,11 +17,11 @@ class AgentService:
         self.__factual = FactualQuestions()
         #self.test_queries()
 
-    def react(self, message: str) -> str:
+    def react(self, message: str, last_message_user: str, last_message_agent: str) -> str:
         try:
             reaction = self.execute_sparql(message)
         except Exception as e:
-            reaction = self.execute_factual(message)
+            reaction = self.execute_factual(message, last_message_user, last_message_user)
             return reaction
         return reaction
 
@@ -39,8 +39,8 @@ class AgentService:
             return f"Here are the results for your query: {result_str}"
         return "Your query did not match anything."
 
-    def execute_factual(self, query: str) -> str:
-        answer = self.__factual.answer_query(query)
+    def execute_factual(self, query: str, last_message_user: str, last_message_agent: str) -> str:
+        answer = self.__factual.answer_query(query, last_message_user, last_message_agent)
         return answer
 
     def test_queries(self):
