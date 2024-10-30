@@ -2,6 +2,7 @@ import logging
 from transformers import pipeline
 
 logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("torch").setLevel(logging.WARNING)
 
 class QuestionAnsweringAgent:
     def __init__(self):

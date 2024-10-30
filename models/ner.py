@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModelForTokenClassification, pipelin
 from utils.utils import get_device
 
 logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("torch").setLevel(logging.WARNING)
 
 class NERParser:
     def __init__(self, model_name="dslim/bert-base-NER", lowercase=False):

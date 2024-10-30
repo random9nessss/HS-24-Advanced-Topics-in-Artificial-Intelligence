@@ -81,7 +81,7 @@ class FactualQuestions:
                                                     1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
                                                     2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
                                                     3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
-                                                    4. **Natural Flow**: Focus on the user’s latest query. If it introduces a new topic, respond directly to it. If it relates to recent context, build on it thoughtfully but don’t force references to past conversation if unnecessary.
+                                                    4. **Keep it Dynamic**: Vary responses and avoid default phrases. Acknowledge the user’s answers and continue moving forward in a natural flow.
                                         
                                                     Provide a response that keeps the conversation engaging, relevant, and natural.
                                                     """)
@@ -121,7 +121,7 @@ class FactualQuestions:
                                                     1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
                                                     2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
                                                     3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
-                                                    4. **Natural Flow**: Focus on the user’s latest query. If it introduces a new topic, respond directly to it. If it relates to recent context, build on it thoughtfully but don’t force references to past conversation if unnecessary.
+                                                    4. **Keep it Dynamic**: Vary responses and avoid default phrases. Acknowledge the user’s answers and continue moving forward in a natural flow.
 
                                                     Provide a response that keeps the conversation engaging, relevant, and natural.
                                                     """)

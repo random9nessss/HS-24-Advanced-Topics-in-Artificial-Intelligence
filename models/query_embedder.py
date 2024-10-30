@@ -2,7 +2,9 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 import torch
 from utils.utils import get_device
+import logging
 
+logging.getLogger("torch").setLevel(logging.WARNING)
 
 class QueryEmbedderContextualized:
     def __init__(self, model_name='sentence-transformers/all-mpnet-base-v2'):

@@ -24,6 +24,8 @@ class ConversationAgent:
             max_length=self.max_length,
             num_beams=5,
             early_stopping=True,
+            temperature=0.8,
         )
+
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response.strip()
