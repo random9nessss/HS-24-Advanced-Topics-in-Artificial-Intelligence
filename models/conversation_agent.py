@@ -22,9 +22,8 @@ class ConversationAgent:
         outputs = self.model.generate(
             **inputs,
             max_length=self.max_length,
-            num_beams=3,
-            early_stopping=True,
-            temperature=0.8,
+            num_beams=5,
+            early_stopping=True
         )
 
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
