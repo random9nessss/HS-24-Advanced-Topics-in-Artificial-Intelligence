@@ -22,7 +22,7 @@ class ConversationAgent:
         outputs = self.model.generate(
             **inputs,
             max_length=self.max_length,
-            num_beams=5,
+            num_beams=3,
             early_stopping=True,
             temperature=0.8,
         )

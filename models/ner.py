@@ -7,7 +7,7 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.WARNING)
 
 class NERParser:
-    def __init__(self, model_name="dslim/bert-base-NER", lowercase=False):
+    def __init__(self, model_name="dslim/bert-large-NER", lowercase=False):
         self.lowercase = lowercase
         self.device = get_device()
 
