@@ -4,7 +4,9 @@ import numpy as np
 import json
 import pandas as pd
 from sklearn.metrics import pairwise_distances
-
+from utils.utils import (
+    logger
+)
 
 class GraphEmbeddings:
 
@@ -33,7 +35,7 @@ class GraphEmbeddings:
         try:
             context_id = context.subject_id.values[0]
             if not context_id:
-                print("No context ID found.")
+                logger.info("No context ID found.")
                 return STD_ERROR
 
             e_id = self.ent2id.get(rdflib.term.URIRef(context_id))
@@ -68,12 +70,12 @@ class GraphEmbeddings:
                         wiki_predicate_id = self.predicates_db[col]
                         break
                     else:
-                        print(f"Predicate {col} not found in rel2id.")
+                        logger.info(f"Predicate {col} not found in rel2id.")
                 else:
-                    print(f"Predicate {col} not found in predicate_db.")
+                    logger.info(f"Predicate {col} not found in predicate_db.")
 
             if not wiki_predicate_id:
-                print("No valid predicate found.")
+                logger.info("No valid predicate found.")
                 return STD_ERROR
 
             r_id = self.rel2id[rdflib.term.URIRef(wiki_predicate_id)]
@@ -91,11 +93,11 @@ class GraphEmbeddings:
             results_df = pd.DataFrame(results_lst, columns=('Entity', 'Label', 'Score', 'Rank'))
 
             if results_df.empty:
-                print("No results in embeddings found.")
+                logger.info("No results in embeddings found.")
                 return STD_ERROR
 
             return f"The most likely answers are: {', '.join(results_df.Label.values)}"
 
         except Exception as e:
-            print(f"Error during query answering: {e}")
+            logger.info(f"Error during query answering: {e}")
             return STD_ERROR

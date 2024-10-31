@@ -174,24 +174,32 @@ def filter_query(query, node_label):
 
     return " ".join(relevant)
 
+
 def fuzzy_match(query_str, comparison_list, db, threshold=30, prioritize_exact=True):
+    if not comparison_list or not query_str:
+        return []
+
     matches = process.extract(query_str, comparison_list, scorer=fuzz.partial_ratio, limit=50)
 
     id_name_score = []
 
     if prioritize_exact and query_str in comparison_list:
-        matched_id = db.name_to_id.get(query_str)
-        if matched_id:
-            id_name_score.append((matched_id, query_str, 100))
+        matched_id = next(key for key, value in db.entities.items() if value == query_str)
+        id_name_score.append((matched_id, query_str, 100))
 
     for match in matches:
         name = match[0]
         score = match[1]
-        matched_id = db.name_to_id.get(name)
-        if matched_id:
-            length_diff = abs(len(name) - len(query_str)) / len(query_str)
-            adjusted_score = score * (1 - length_diff)
-            id_name_score.append((matched_id, name, adjusted_score))
+        matched_id = next(key for key, value in db.entities.items() if value == name)
+        length_diff = abs(len(name) - len(query_str)) / len(query_str)
+
+        adjusted_score = score * (1 - length_diff)
+
+        if db.entities[matched_id] in query_str:
+            adjusted_score = 100
+            logger.info(f"Found exact match with Fuzzy: {db.entities[matched_id]}")
+
+        id_name_score.append((matched_id, name, adjusted_score))
 
     return [id for id, _, score in id_name_score if score >= threshold]
 

@@ -13,8 +13,8 @@ class AgentService:
 
     def __init__(self):
         # self.__sparql = SparqlQueries("../dataset/minimal_graph.nt")
-        self.__sparql = SparqlQueries("../dataset/14_graph.nt")
         self.__factual = FactualQuestions()
+        self.__sparql = SparqlQueries("../dataset/14_graph.nt")
         #self.test_queries()
 
     def react(self, message: str, last_message_user: str, last_message_agent: str) -> str:

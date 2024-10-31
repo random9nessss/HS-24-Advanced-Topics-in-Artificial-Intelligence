@@ -172,19 +172,20 @@ venv
 /dataset/entity_embeds.npy
 /dataset/14_graph.nt
 
+*.nt
+*.tsv
+*.npy
+*.txt
+*.json
+*.pkl
+*.gz
+*.zip
+*.tar
+*.whl
+*.del
+
+
 /development/MovieData/**
 /development/exports/
 /development/input/
 
-/development/glove.6B.50d.txt
-/development/glove.6B.100d.txt
-/development/glove.6B.200d.txt
-/development/exports/glove.6B/glove.6B.300d.txt
-/development/glove.6B.zip
-
-/database/extended_graph_triples.pkl
-/database/entity_db.json
-/dataset/.
-
-/development/export_entity_json.ipynb
-/development/export_predicate_json.ipynb
