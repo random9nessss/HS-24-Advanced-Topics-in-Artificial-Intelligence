@@ -91,6 +91,7 @@ class FactualQuestions:
             logger.info(f"Fuzzy person matches: {fuzzy_person_matches}")
             logger.info(f"Fuzzy movie matches: {fuzzy_movie_matches}")
 
+
             fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id")
             fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id")
 

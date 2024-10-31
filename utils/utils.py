@@ -179,29 +179,25 @@ def fuzzy_match(query_str, comparison_list, db, threshold=30, prioritize_exact=T
     if not comparison_list or not query_str:
         return []
 
-    matches = process.extract(query_str, comparison_list, scorer=fuzz.partial_ratio, limit=50)
+    # Preprocess db.entities to reverse-map names to IDs for faster lookup
+    name_to_id = {v: k for k, v in db.entities.items()}
 
-    id_name_score = []
+    # Perform fuzzy matching with optimized lookup
+    matches = process.extract(query_str, comparison_list, scorer=fuzz.partial_ratio, limit=30)
+    longest_matching_id = ""
 
-    if prioritize_exact and query_str in comparison_list:
-        matched_id = next(key for key, value in db.entities.items() if value == query_str)
-        id_name_score.append((matched_id, query_str, 100))
+    for name, score in matches:
 
-    for match in matches:
-        name = match[0]
-        score = match[1]
-        matched_id = next(key for key, value in db.entities.items() if value == name)
-        length_diff = abs(len(name) - len(query_str)) / len(query_str)
+        matched_id = name_to_id.get(name)
+        if matched_id and name in query_str:
+            if not longest_matching_id or len(name) > len(db.entities[longest_matching_id]):
+                longest_matching_id = matched_id
 
-        adjusted_score = score * (1 - length_diff)
+    if longest_matching_id:
+        logger.info(f"Found exact match with Fuzzy: {db.entities[longest_matching_id]}")
+        return [longest_matching_id]
 
-        if db.entities[matched_id] in query_str:
-            adjusted_score = 100
-            logger.info(f"Found exact match with Fuzzy: {db.entities[matched_id]}")
-
-        id_name_score.append((matched_id, name, adjusted_score))
-
-    return [id for id, _, score in id_name_score if score >= threshold]
+    return []
 
 def get_top_matches(df, query_str, top_n=1):
     """
