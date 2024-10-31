@@ -186,8 +186,8 @@ def fuzzy_match(query_str, comparison_list, db, threshold=30, prioritize_exact=T
     matches = process.extract(query_str, comparison_list, scorer=fuzz.partial_ratio, limit=30)
     longest_matching_id = ""
 
-    for name, score in matches:
-
+    for match in matches:
+        name = match[0]
         matched_id = name_to_id.get(name)
         if matched_id and name in query_str:
             if not longest_matching_id or len(name) > len(db.entities[longest_matching_id]):
