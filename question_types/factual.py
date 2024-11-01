@@ -10,6 +10,8 @@ from models.ner import NERParser
 from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
+from models.query_classifier import QueryClassifier
+
 from utils.utils import (
     measure_time,
     filter_query,
@@ -35,17 +37,41 @@ class FactualQuestions:
         logger.info("ConversationAgent initialized.")
         self.ge = GraphEmbeddings(graph=self.db.db)
         logger.info("GraphEmbeddings initialized.")
+        self.qc = QueryClassifier()
+        logger.info("QueryClassifier initialized.")
         logger.info("FactualQuestions class initialized successfully.")
 
     @measure_time
     def answer_query(self, query: str, last_user_query: str, last_assistant_response: str) -> str:
+        logger.info(f"Query: {query}")
         normalized_query = self.db.normalize_string(query)
-        logger.info("Normalized query for NER processing.")
 
-        ner_person, ner_movies = self.ner_parser.process_query(normalized_query)
-        logger.info("Processed query using NER parser.")
+        ner_person, ner_movies = self.ner_parser.process_query(normalized_query.capitalize())
         logger.info(f"NER_Person: {ner_person}")
         logger.info(f"NER_Movies: {ner_movies}")
+
+        domain_check = self.qc.is_related_to_movies(query)
+        logger.info(f"Domain Check: {domain_check}")
+
+        if not ner_person and not ner_movies and not domain_check:
+            last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
+            small_talk = self.ca.generate_response(f"""You are a knowledgeable, friendly assistant in a natural conversation with a user. Your goal is to respond thoughtfully to the user’s query, focusing on keeping the conversation engaging and flowing naturally.
+
+                                                    User Query: "{query}"
+
+                                                    {f'The last thing the user asked was: "{last_user_query}".' if last_user_query else ''}
+                                                    {f'Your last response was: "{last_assistant_response}".' if last_assistant_response else ''}
+
+                                                    Guidelines:
+                                                    1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
+                                                    2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
+                                                    3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
+                                                    4. **Keep it Dynamic**: Vary responses and avoid default phrases. Acknowledge the user’s answers and continue moving forward in a natural flow.
+
+                                                    Provide a response that keeps the conversation engaging, relevant, and natural.
+                                                """)
+            logger.info(f"Generated small talk response: '{small_talk}'")
+            return small_talk
 
         # Process people IDs
         ner_people_ids = []
@@ -85,19 +111,18 @@ class FactualQuestions:
         if context.empty:
             logger.warning("NER failed; proceeding with fuzzy matching.")
 
-            fuzzy_person_matches = fuzzy_match(normalized_query, self.db.people_names, self.db, threshold=30)
-            fuzzy_movie_matches = fuzzy_match(normalized_query, self.db.movie_names, self.db, threshold=30)
+            fuzzy_person_matches = fuzzy_match(normalized_query, self.db.people_names, self.db, threshold=50)
+            fuzzy_movie_matches = fuzzy_match(normalized_query, self.db.movie_names, self.db, threshold=50)
 
             logger.info(f"Fuzzy person matches: {fuzzy_person_matches}")
             logger.info(f"Fuzzy movie matches: {fuzzy_movie_matches}")
-
 
             fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id")
             fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id")
 
             context = pd.concat([fuzzy_movie_context, fuzzy_person_context])
-            logger.info("Fuzzy matching completed and context fetched.")
-            logger.info(f"Final context after fuzzy matching: {context}")
+            #logger.info("Fuzzy matching completed and context fetched.")
+            #logger.info(f"Final context after fuzzy matching: {context}")
 
         if context.empty:
             logger.warning("No context data found for the given query.")
@@ -129,17 +154,18 @@ class FactualQuestions:
         node_label = ""
         if "node label" in context.columns and not context["node label"].isna().values[0]:
             node_label = context["node label"].values[0]
-            logger.info(f"Node label found: {node_label}")
+            #logger.info(f"Node label found: {node_label}")
         else:
-            logger.debug("Node label not found or is NaN.")
+            #logger.debug("Node label not found or is NaN.")
+            pass
 
         entity_id = ""
         if "subject_id" in context.columns and not context["subject_id"].isna().values[0]:
             entity_id = context["subject_id"].values[0]
-            logger.info(f"Entity ID found: {entity_id}")
+            #logger.info(f"Entity ID found: {entity_id}")
         else:
-            logger.debug("Entity ID not found or is NaN.")
-
+            #logger.debug("Entity ID not found or is NaN.")
+            pass
 
         if "CURRENT MODE" == "RECOMMENDER":
             node_label = self.db.normalize_string(node_label)
@@ -193,7 +219,7 @@ class FactualQuestions:
         # Remove unused columns
         elements_to_remove = ["image", "color", "sport"]
         context = context.drop(columns=elements_to_remove, errors='ignore')
-        logger.debug(f"Context after removing unused columns: {context.columns}")
+        #logger.debug(f"Context after removing unused columns: {context.columns}")
 
         # Initial context for embeddings where original column names are required
         initial_context = context.copy()
@@ -204,7 +230,7 @@ class FactualQuestions:
             "notable work": "acted in"
         }
         context = context.rename(columns={k: v for k, v in columns_to_rename.items() if k in context.columns})
-        logger.debug(f"Context after renaming columns: {context.columns}")
+        #logger.debug(f"Context after renaming columns: {context.columns}")
 
         columns_to_duplicate = [("acted in", "played in"),
                                 ("acted in", "appeared in"),
@@ -214,31 +240,31 @@ class FactualQuestions:
         for col_to_duplicate, col in columns_to_duplicate:
             if col_to_duplicate in context.columns:
                 context[col] = context[col_to_duplicate]
-                logger.debug(f"Duplicated column '{col_to_duplicate}' to '{col}'")
+                #logger.debug(f"Duplicated column '{col_to_duplicate}' to '{col}'")
 
         context.dropna(axis=1, inplace=True)
-        logger.debug(f"Context after dropping NaNs: {context.columns}")
+        #logger.debug(f"Context after dropping NaNs: {context.columns}")
 
         query_filtered = filter_query(query, node_label)
-        logger.debug(f"Filtered query: '{query_filtered}'")
+        #logger.debug(f"Filtered query: '{query_filtered}'")
 
         column_embeddings = {col: self.qe.embed_phrase(col) for col in context.columns}
-        logger.debug("Column embeddings computed.")
+        #logger.debug("Column embeddings computed.")
         query_embeddings = [self.qe.embed_phrase(word) for word in query_filtered.split()]
-        logger.debug("Query embeddings computed.")
+        #logger.debug("Query embeddings computed.")
         top_columns_embeddings = find_closest_columns(query_embeddings, column_embeddings)
-        logger.debug(f"Top columns from embeddings: {top_columns_embeddings}")
+        #logger.debug(f"Top columns from embeddings: {top_columns_embeddings}")
 
         # Always keep these columns
         col_always_keep = ["node label"]
 
         combined_columns = set(top_columns_embeddings + col_always_keep)
         top_columns = [col for col in combined_columns if col in context.columns]
-        logger.debug(f"Final selected columns: {top_columns}")
+        #logger.debug(f"Final selected columns: {top_columns}")
         filtered_context_df = context[top_columns]
 
         answer = self.qa.query(query, filtered_context_df)
-        logger.debug(f"Answer from QA model: '{answer}'")
+        #logger.debug(f"Answer from QA model: '{answer}'")
         formatted_answer = self.ca.generate_response(f"""You are a knowledgeable assistant specializing in movies. Your goal is to provide a clear and accurate response based on the given answer, ensuring it sounds natural and relevant to the user.
                                                 
                                                      Question: "{query}"

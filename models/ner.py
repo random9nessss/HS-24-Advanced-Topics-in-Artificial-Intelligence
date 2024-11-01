@@ -1,7 +1,10 @@
 import torch
 import logging
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
+from flair.data import Sentence
+from flair.models import SequenceTagger
 from utils.utils import get_device
+import difflib
 
 logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.WARNING)
@@ -19,12 +22,49 @@ class NERParser:
             aggregation_strategy="simple"
         )
 
+        self.flair_tagger = SequenceTagger.load("flair/ner-english")
+
     def parse_ner_results(self, ner_results):
+        """Parse results from a Hugging Face NER model."""
         per_entities = [e['word'] for e in ner_results if e['entity_group'] == 'PER']
         misc_entities = [e['word'] for e in ner_results if e['entity_group'] == 'MISC']
         return per_entities, misc_entities
 
+    def parse_flair_results(self, sentence):
+        """Parse results from the Flair NER model."""
+        per_entities = []
+        misc_entities = []
+        for entity in sentence.get_spans('ner'):
+            if entity.get_label("ner").value == "PER":
+                per_entities.append(entity.text)
+            elif entity.get_label("ner").value == "MISC":
+                misc_entities.append(entity.text)
+        return per_entities, misc_entities
+
+    def match_with_gazetteer(self, entities, gazetteer):
+        """Match entities to the gazetteer to improve recall for specific domain."""
+        matched_entities = []
+        for entity in entities:
+            matches = difflib.get_close_matches(entity, gazetteer, n=1, cutoff=0.8)
+            if matches:
+                matched_entities.append(matches[0])
+        return matched_entities
+
     def process_query(self, query):
+        """Process the query using both BERT-based, CoNLL BERT, and Flair NER models, plus gazetteer matching."""
         if self.lowercase:
             query = query.lower()
-        return self.parse_ner_results(self.nlp_pipeline(query))
+
+        # Primary NER model
+        ner_results_bert = self.nlp_pipeline(query)
+        per_entities_bert, misc_entities_bert = self.parse_ner_results(ner_results_bert)
+
+        # Flair NER model (particularly good for persons)
+        sentence = Sentence(query)
+        self.flair_tagger.predict(sentence)
+        per_entities_flair, misc_entities_flair = self.parse_flair_results(sentence)
+
+        per_entities = list(set(per_entities_bert + per_entities_flair))
+        misc_entities = list(set(misc_entities_bert + misc_entities_flair))
+
+        return per_entities, misc_entities
