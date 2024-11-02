@@ -42,17 +42,9 @@ class NERParser:
                 misc_entities.append(entity.text)
         return per_entities, misc_entities
 
-    def match_with_gazetteer(self, entities, gazetteer):
-        """Match entities to the gazetteer to improve recall for specific domain."""
-        matched_entities = []
-        for entity in entities:
-            matches = difflib.get_close_matches(entity, gazetteer, n=1, cutoff=0.8)
-            if matches:
-                matched_entities.append(matches[0])
-        return matched_entities
 
     def process_query(self, query):
-        """Process the query using both BERT-based, CoNLL BERT, and Flair NER models, plus gazetteer matching."""
+        """Process the query using both BERT-based and Flair NER models, plus gazetteer matching."""
         if self.lowercase:
             query = query.lower()
 
