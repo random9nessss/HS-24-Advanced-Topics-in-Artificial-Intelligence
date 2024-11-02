@@ -55,21 +55,22 @@ class FactualQuestions:
 
         if not ner_person and not ner_movies and not domain_check:
             last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
-            small_talk = self.ca.generate_response(f"""You are a knowledgeable, friendly assistant in a natural conversation with a user. Your goal is to respond thoughtfully to the user’s query, focusing on keeping the conversation engaging and flowing naturally.
-
-                                                    User Query: "{query}"
-
-                                                    {f'The last thing the user asked was: "{last_user_query}".' if last_user_query else ''}
-                                                    {f'Your last response was: "{last_assistant_response}".' if last_assistant_response else ''}
-
-                                                    Guidelines:
-                                                    1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
-                                                    2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
-                                                    3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
-                                                    4. **Keep it Dynamic**: Vary responses and avoid default phrases. Acknowledge the user’s answers and continue moving forward in a natural flow.
-
-                                                    Provide a response that keeps the conversation engaging, relevant, and natural.
+            small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
+                                        
+                                                    {f'Previous response: "{last_assistant_response}".' if last_assistant_response else ''}
+                                        
+                                                    **User Query:** "{query}"
+                                        
+                                                    **Note:** The previous response may not be related to the current user query.
+                                        
+                                                    **Guidelines:**
+                                                    1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
+                                                    2. **Avoid Repetition:** Don’t repeat the user's words or re-ask recent questions.{f'As such do not respond with: "{last_assistant_response}".' if last_assistant_response else ''}
+                                                    3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
+                                        
+                                                    Provide an engaging, relevant, and natural response.
                                                 """)
+
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
@@ -129,20 +130,20 @@ class FactualQuestions:
 
             # Fallback Strategy
             last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
-            small_talk = self.ca.generate_response(f"""You are a knowledgeable, friendly assistant in a natural conversation with a user. Your goal is to respond thoughtfully to the user’s query, focusing on keeping the conversation engaging and flowing naturally.
+            small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
 
-                                                    User Query: "{query}"
+                                                    {f'Previous response: "{last_assistant_response}".' if last_assistant_response else ''}
 
-                                                    {f'The last thing the user asked was: "{last_user_query}".' if last_user_query else ''}
-                                                    {f'Your last response was: "{last_assistant_response}".' if last_assistant_response else ''}
+                                                    **User Query:** "{query}"
 
-                                                    Guidelines:
-                                                    1. **Context Awareness**: Use the context from the last message(s) only if it’s directly relevant to the new query. If the query is unrelated, respond independently without referencing previous messages.
-                                                    2. **Avoid Repetition**: Don’t repeat the user's words verbatim or re-ask recent questions. If the user has already answered a conversational prompt like "How are you?", avoid asking similar questions like "How about you?" unless it naturally fits the flow.
-                                                    3. **Follow-up Sensitivity**: If you asked a question in your last response and the user has replied directly (e.g., "I'm good, thanks"), acknowledge their response without re-asking similar questions.
-                                                    4. **Keep it Dynamic**: Vary responses and avoid default phrases. Acknowledge the user’s answers and continue moving forward in a natural flow.
+                                                    **Note:** The previous response may not be related to the current user query.
 
-                                                    Provide a response that keeps the conversation engaging, relevant, and natural.
+                                                    **Guidelines:**
+                                                    1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
+                                                    2. **Avoid Repetition:** Don’t repeat the user's words or re-ask recent questions.{f'As such do not respond with: "{last_assistant_response}".' if last_assistant_response else ''}
+                                                    3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
+
+                                                    Provide an engaging, relevant, and natural response.
                                                 """)
 
             logger.info(f"Generated small talk response: '{small_talk}'")

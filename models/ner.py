@@ -8,6 +8,7 @@ import difflib
 
 logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.WARNING)
+logging.getLogger("flair").setLevel(logging.WARNING)
 
 class NERParser:
     def __init__(self, model_name="dslim/bert-large-NER", lowercase=False):
