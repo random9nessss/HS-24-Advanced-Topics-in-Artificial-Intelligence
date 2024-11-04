@@ -93,7 +93,7 @@ class DataBase:
         clean_db = self.db[self.db["subject_id"].isin(self.movie_data.keys())]
         relevant_cols = [
             # "author",  # only 99 movies have an author
-            # "cast member",
+            "cast member",
             "director",
             "performer",
             "genre",
@@ -112,4 +112,10 @@ class DataBase:
 
         pv_db = pv_db[[col for col in relevant_cols if col in pv_db.columns]]
 
-        return pv_db.reset_index()
+        pv_db = pv_db.drop_duplicates().reset_index()
+        pv_db.to_pickle("../development/exports/df_recommender.pkl")
+
+        return pv_db
+
+if __name__ == "__main__":
+    db = DataBase()
