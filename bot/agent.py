@@ -45,6 +45,7 @@ class Agent:
                     last_user_query, last_assistant_response = last_exchange
 
                     response_str = self.bot_service.react(message.message, last_user_query, last_assistant_response)
+                    response_str = response_str.encode('latin-1', 'ignore').decode('latin-1')
                     room.post_messages(f"{response_str}")
 
                     self.last_messages[room.room_id].append((message.message, response_str))
