@@ -11,6 +11,7 @@ from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
 from models.query_classifier import QueryClassifier
+from question_types import recommendation
 
 from utils.utils import (
     measure_time,
@@ -168,54 +169,29 @@ class FactualQuestions:
             #logger.debug("Entity ID not found or is NaN.")
             pass
 
-        if "CURRENT MODE" == "RECOMMENDER":
-            node_label = self.db.normalize_string(node_label)
-            if node_label in self.db.people_names:
-                movie_ids = self.db.people_movie_mapping[entity_id]
-                context = self.db.fetch(movie_ids, "subject_id")
-                subject_labels = context["node label"].tolist()
-                return ", ".join(subject_labels)
 
-            context.dropna(axis=1, inplace=True)
-            columns = [col for col in context.columns if col in db.movie_recommender_db.columns]
-            red_db = self.db.movie_recommender_db[columns]
-            context = context[columns]
 
-            # drop the identified row already in the context
-            subject_id_to_remove = context["subject_id"].values[0]
-            red_db = red_db[red_db["subject_id"] != subject_id_to_remove]
 
-            red_db.dropna(thresh=len(red_db.columns) - 0, inplace=True)
-            red_db.reset_index(drop=True, inplace=True)
+        # ************RECOMMENDATION************
+        keywords = [
+            "recommend",
+            "propose",
+            "advise",
+            "offer",
+            "like",
+            "should",
+            "must"
+        ]
+        if any([word for word in keywords if word in query]):
+            logger.info("Detected recommendation query.")
+            movies = recommendation.recommend(node_label, entity_id, context, self.db)
+            formatted_answer = f"Based on {node_label.title()}, I recommend:\n~ " + '\n~ '.join(
+                movies)
+            return formatted_answer
+        # ************RECOMMENDATION************
 
-            def calculate_similarity(i, row):
-                similarities = []
-                for col in context.columns:
-                    if pd.isna(row[col]):
-                        continue
 
-                    if col in ["node label", "subject_id"]:
-                        continue
 
-                    similarity = fuzz.ratio(row[col], context[col].iloc[0]) / 100.0
-                    similarities.append(similarity)
-
-                return (i, np.mean(similarities) if similarities else 0)
-
-            top_scores = []
-            for i, row in red_db.iterrows():
-                index, score = calculate_similarity(i, row)
-
-                if len(top_scores) < 3:
-                    heapq.heappush(top_scores, (score, index))
-                else:
-                    heapq.heappushpop(top_scores, (score, index))
-
-            # Extract indices from top 3 scores
-            top_indices = [index for score, index in top_scores]
-            top_rows = red_db.iloc[top_indices]
-            subject_labels = top_rows['node label'].tolist()
-            return ", ".join(subject_labels)
 
         # Remove unused columns
         elements_to_remove = ["image", "color", "sport"]

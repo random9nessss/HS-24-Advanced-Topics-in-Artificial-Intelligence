@@ -2,6 +2,7 @@ import logging
 
 from question_types.sparql import SparqlQueries
 from question_types.factual import FactualQuestions
+from speakeasypy.openapi.client.rest import logger
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,6 +17,7 @@ class AgentService:
         self.__factual = FactualQuestions()
         self.__sparql = SparqlQueries("../dataset/14_graph.nt")
         #self.test_queries()
+        logger.info("READY TO ANSWER QUESTIONS")
 
     def react(self, message: str, last_message_user: str, last_message_agent: str) -> str:
         try:
