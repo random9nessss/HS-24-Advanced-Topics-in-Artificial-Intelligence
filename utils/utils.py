@@ -175,29 +175,45 @@ def filter_query(query, node_label):
     return " ".join(relevant)
 
 
-def fuzzy_match(query_str, comparison_list, db, threshold=30, prioritize_exact=True):
+def fuzzy_match(query_str, comparison_list, db):
     if not comparison_list or not query_str:
         return []
 
-    # Preprocess db.entities to reverse-map names to IDs for faster lookup
     name_to_id = {v: k for k, v in db.entities.items()}
 
-    # Perform fuzzy matching with optimized lookup
-    matches = process.extract(query_str, comparison_list, scorer=fuzz.partial_ratio, limit=30)
-    longest_matching_id = ""
+    longest_full_match = ""
+    longest_full_length = 0
+    longest_prefix_match = ""
+    longest_prefix_length = 0
 
-    for match in matches:
-        name = match[0]
-        matched_id = name_to_id.get(name)
-        if matched_id and name in query_str:
-            if not longest_matching_id or len(name) > len(db.entities[longest_matching_id]):
-                longest_matching_id = matched_id
+    query_str = db.normalize_string(query_str)
 
-    if longest_matching_id:
-        logger.info(f"Found exact match with Fuzzy: {db.entities[longest_matching_id]}")
-        return [longest_matching_id]
+    # Loop through the comparison list to find both longest full match and longest prefix match
+    for subject in comparison_list:
+        if "porn" in subject:
+            continue
 
+        if subject in query_str:
+            if len(subject) > longest_full_length:
+                longest_full_match = subject
+                longest_full_length = len(subject)
+
+        # Check for longest prefix match
+        for i in range(len(subject), 0, -1):
+            if subject[:i] == query_str[:i] and len(subject) > len(query_str):
+                if i > longest_prefix_length:
+                    longest_prefix_match = subject
+                    longest_prefix_length = i
+                break
+
+    if longest_full_length >= 4:
+        logger.info(f"Found FULL match: {longest_full_match}")
+        return [name_to_id[longest_full_match]]
+    elif longest_prefix_length >= 9:
+        logger.info(f"Found PREFIX match: {longest_prefix_match}")
+        return [name_to_id[longest_prefix_match]]
     return []
+
 
 def get_top_matches(df, query_str, top_n=1):
     """

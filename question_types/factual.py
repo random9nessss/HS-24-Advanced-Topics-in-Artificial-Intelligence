@@ -47,14 +47,10 @@ class FactualQuestions:
         logger.info(f"Query: {query}")
         normalized_query = self.db.normalize_string(query)
 
-        ner_person, ner_movies = self.ner_parser.process_query(normalized_query.capitalize())
-        logger.info(f"NER_Person: {ner_person}")
-        logger.info(f"NER_Movies: {ner_movies}")
-
         domain_check = self.qc.is_related_to_movies(query)
-        logger.info(f"Domain Check: {domain_check}")
+        logger.info(f"Is related to movies: {domain_check}")
 
-        if not ner_person and not ner_movies and not domain_check:
+        if not domain_check:
             last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
             small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
                                         
@@ -75,56 +71,36 @@ class FactualQuestions:
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
-        # Process people IDs
-        ner_people_ids = []
-        for ner_p in ner_person:
-            ner_p = self.db.normalize_string(ner_p)
-            logger.debug(f"Normalized NER person: {ner_p}")
-            if ner_p in self.db.people_names:
-                ner_people_ids = [key for key, value in self.db.people_data.items() if value == ner_p]
-                logger.info(f"Direct match found for person: {ner_p}")
-            if not ner_people_ids:
-                ner_people_ids = [key for key, value in self.db.people_data.items() if ner_p in value]
-                logger.debug(f"Partial match search in people data for: {ner_p}")
-            if not ner_people_ids:
-                ner_people_ids = fuzzy_match(" ".join(ner_person), self.db.people_names, threshold=75)
-                logger.info("Using fuzzy match for person IDs.")
+        fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(normalized_query, self.db.people_names, self.db)
+        fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(normalized_query, self.db.movie_names, self.db)
 
-        # Process movie IDs
-        ner_movie_ids = []
-        for ner_m in ner_movies:
-            ner_m = self.db.normalize_string(ner_m)
-            logger.debug(f"Normalized NER movie: {ner_m}")
-            if ner_m in self.db.movie_names:
-                ner_movie_ids = [key for key, value in self.db.movie_data.items() if value == ner_m]
-                logger.info(f"Direct match found for movie: {ner_m}")
-            if not ner_movie_ids:
-                ner_movie_ids = [key for key, value in self.db.movie_data.items() if ner_m in value]
-                logger.debug(f"Partial match search in movie data for: {ner_m}")
-            if not ner_movie_ids:
-                ner_movie_ids = fuzzy_match(" ".join(ner_movies), self.db.movie_names, threshold=75)
-                logger.info("Using fuzzy match for movie IDs.")
+        fuzzy_movie_matches = []
+        fuzzy_person_matches = []
+        if movie_full_match and person_full_match:
+            if movie_match_length > person_match_length:
+                fuzzy_person_matches = []
+                fuzzy_movie_matches = [fuzzy_movie_match]
+            else:
+                fuzzy_movie_matches = []
+                fuzzy_person_matches = [fuzzy_person_match]
 
-        # Combine IDs and fetch context
-        ner_ids = ner_movie_ids + ner_people_ids
-        logger.debug(f"Combined NER IDs: {ner_ids}")
+        elif person_full_match:
+            fuzzy_movie_matches = []
+            fuzzy_person_matches = [fuzzy_person_match]
+        elif movie_full_match:
+            fuzzy_person_matches = []
+            fuzzy_movie_matches = [fuzzy_movie_match]
 
-        context = self.db.fetch(ner_ids, "subject_id")
-        if context.empty:
-            logger.warning("NER failed; proceeding with fuzzy matching.")
+        elif len(fuzzy_movie_match) and len(fuzzy_person_match):
+            if person_match_length > movie_match_length:
+                fuzzy_movie_matches = []
+            else:
+                fuzzy_person_matches = []
 
-            fuzzy_person_matches = fuzzy_match(normalized_query, self.db.people_names, self.db, threshold=50)
-            fuzzy_movie_matches = fuzzy_match(normalized_query, self.db.movie_names, self.db, threshold=50)
+        fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id")
+        fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id")
 
-            logger.info(f"Fuzzy person matches: {fuzzy_person_matches}")
-            logger.info(f"Fuzzy movie matches: {fuzzy_movie_matches}")
-
-            fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id")
-            fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id")
-
-            context = pd.concat([fuzzy_movie_context, fuzzy_person_context])
-            #logger.info("Fuzzy matching completed and context fetched.")
-            #logger.info(f"Final context after fuzzy matching: {context}")
+        context = pd.concat([fuzzy_movie_context, fuzzy_person_context])
 
         if context.empty:
             logger.warning("No context data found for the given query.")
