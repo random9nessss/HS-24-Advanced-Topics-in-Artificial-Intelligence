@@ -12,6 +12,16 @@ class DataBase:
         module_dir = Path(__file__).resolve().parent.parent
         dataset_dir = module_dir / "dataset"
 
+        with open(dataset_dir / 'images.json') as f:
+            self.images_data = json.load(f)
+        self.image_lookup = {}
+        for element in self.images_data:
+            img = element["img"].split(".img")[0]
+            for m in element["movie"] + element["cast"]:
+                if m not in self.image_lookup:
+                    self.image_lookup[m] = []
+                self.image_lookup[m].append(img)
+
         # Load the main database
         self.db = pd.read_pickle(dataset_dir / "extended_graph_triples.pkl")
         self.db['subject_id'] = self.db['subject_id'].astype(str).str.strip()
