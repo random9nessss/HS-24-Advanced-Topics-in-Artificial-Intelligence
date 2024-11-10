@@ -167,6 +167,19 @@ class FactualQuestions:
         # ************RECOMMENDATION************
 
 
+        # ************MULTIMEDIA************
+        # keywords = [
+        #     "picture",
+        #     "image",
+        #     "poster",
+        #     "photo",
+        #     "show",
+        #     "look"
+        # ]
+        # if any([word for word in keywords if word in query]) and "imdb id" in context.columns:
+        #     logger.info("Detected multimedia query.")
+        #     return f"https://www.imdb.com/title/{context['imdb id'].values[0]}"
+        # ************MULTIMEDIA************
 
 
         # Remove unused columns
