@@ -207,12 +207,12 @@ def fuzzy_match(query_str, comparison_list, db):
                 break
 
     if longest_full_length >= 4:
-        logger.info(f"Found FULL match: {longest_full_match}")
-        return [name_to_id[longest_full_match]]
+        print(f"Found FULL match: {longest_full_match}")
+        return name_to_id[longest_full_match], True, longest_full_length
     elif longest_prefix_length >= 9:
-        logger.info(f"Found PREFIX match: {longest_prefix_match}")
-        return [name_to_id[longest_prefix_match]]
-    return []
+        print(f"Found PREFIX match: {longest_prefix_match}")
+        return name_to_id[longest_prefix_match], False, longest_prefix_length
+    return [], False, 0
 
 
 def get_top_matches(df, query_str, top_n=1):
