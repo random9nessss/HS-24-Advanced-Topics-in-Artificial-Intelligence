@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import pandas as pd
 import logging
@@ -180,9 +182,9 @@ class FactualQuestions:
         if any([word for word in keywords if word in query]) and "imdb id" in context.columns:
             logger.info("Detected multimedia query.")
             imdb_id = context["imdb id"].values[0]
-            images = self.db.image_lookup.get(imdb_id, [])
-            if images:
-                return f"Here is a Picture of {node_label} image:{images[0]}"
+            image = self.db.get_image(imdb_id)
+            if image:
+                return f"Here is a Picture of {node_label}\n image:{image}"
             return f"Sorry, I don't find any image for {node_label}."
         # ************MULTIMEDIA************
 

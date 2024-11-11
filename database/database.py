@@ -1,3 +1,5 @@
+import random
+
 import pandas as pd
 import json
 import re
@@ -14,13 +16,19 @@ class DataBase:
 
         with open(dataset_dir / 'images.json') as f:
             self.images_data = json.load(f)
-        self.image_lookup = {}
-        for element in self.images_data:
-            img = element["img"].split(".img")[0]
-            for m in element["movie"] + element["cast"]:
-                if m not in self.image_lookup:
-                    self.image_lookup[m] = []
-                self.image_lookup[m].append(img)
+            self.image_lookup = {}
+            debug = set()
+            for element in self.images_data:
+                img_type = element.get("type", "all")
+                img = element["img"].split(".jpg")[0]
+                for m in element["movie"] + element["cast"]:
+                    if m not in self.image_lookup:
+                        self.image_lookup[m] = {}
+                    if element["type"] not in self.image_lookup[m]:
+                        self.image_lookup[m][element["type"]] = []
+                    self.image_lookup[m][img_type].append(img)
+            for t in debug:
+                print(t)
 
         # Load the main database
         self.db = pd.read_pickle(dataset_dir / "extended_graph_triples.pkl")
@@ -58,6 +66,32 @@ class DataBase:
         self.movie_people_mapping = {}
         self.map_people_movies(dataset_dir)
         self.movie_recommender_db = self.filter_relevant_movies()
+
+    def get_image(self, imdb_id):
+        if imdb_id not in self.image_lookup:
+            return ""
+
+        priorities = [
+            "poster",
+            "publicity",
+            "still_frame",
+            "product",
+            "behind_the_scenes",
+            "event",
+            "unknown",
+            "production_art",
+            "user_avatar",
+            "all"
+        ]
+
+        images = []
+        for img_type in priorities:
+            if img_type in self.image_lookup[imdb_id]:
+                images = self.image_lookup[imdb_id][img_type]
+                break
+
+
+        return random.choice(images) if images else ""
 
     def map_people_movies(self, dataset_dir):
         # Load triples only IDs and clean them
