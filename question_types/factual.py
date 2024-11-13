@@ -49,10 +49,15 @@ class FactualQuestions:
         logger.info(f"Query: {query}")
         normalized_query = self.db.normalize_string(query)
 
+        ###############
+        # Domain Check
+        ###############
+        ner_person, ner_movies = self.ner_parser.process_query(normalized_query.capitalize())
+
         domain_check = self.qc.is_related_to_movies(query)
         logger.info(f"Is related to movies: {domain_check}")
 
-        if not domain_check:
+        if not ner_person and not ner_movies and not domain_check:
             last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
             small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
                                         
@@ -134,17 +139,13 @@ class FactualQuestions:
         node_label = ""
         if "node label" in context.columns and not context["node label"].isna().values[0]:
             node_label = context["node label"].values[0]
-            #logger.info(f"Node label found: {node_label}")
         else:
-            #logger.debug("Node label not found or is NaN.")
             pass
 
         entity_id = ""
         if "subject_id" in context.columns and not context["subject_id"].isna().values[0]:
             entity_id = context["subject_id"].values[0]
-            #logger.info(f"Entity ID found: {entity_id}")
         else:
-            #logger.debug("Entity ID not found or is NaN.")
             pass
 
 
@@ -159,8 +160,10 @@ class FactualQuestions:
             "like",
             "should",
             "must",
-            "similar"
+            "similar",
+            "suggest"
         ]
+
         if any([word for word in keywords if word in query]):
             logger.info("Detected recommendation query.")
             movies = recommendation.recommend(node_label, entity_id, context, self.db)

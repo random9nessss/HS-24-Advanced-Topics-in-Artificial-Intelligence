@@ -35,7 +35,8 @@ class QueryClassifier:
             "movie", "film", "actor", "actress", "director", "producer", "cinema",
             "starred", "played in", "cast", "genre", "screenplay", "box office", "theater",
             "watch", "scene", "plot", "character", "award", "oscar", "hollywood", "bollywood",
-            "tv show", "series", "episode", "season", "trailer", "sequel", "prequel", "franchise"
+            "tv show", "series", "episode", "season", "trailer", "sequel", "prequel", "franchise",
+            "recommend", "suggest", "like", "similar to", "fan of", "propose", ""
         ]
 
     def is_greeting(self, query):
@@ -95,6 +96,6 @@ class QueryClassifier:
         top_label = result['labels'][0]
         top_score = result['scores'][0]
 
-        logging.debug(f"Zero-shot classification result: {result}")
+        logging.debug(f"Zero-shot classification result: {result} - {top_score}")
 
         return top_label == "Movie-related question" and top_score >= threshold
