@@ -182,11 +182,11 @@ class FactualQuestions:
             "show",
             "look"
         ]
-        if any([word for word in keywords if word in query]) and "imdb id" in context.columns:
+        if any([word for word in keywords if word in query]) and "imdb id" in context.columns and not context["imdb id"].isna().values[0]:
             logger.info("Detected multimedia query.")
             imdb_id = context["imdb id"].values[0]
-            image = self.db.get_image(imdb_id)
-            if image:
+            image = self.db.get_image(imdb_id, is_movie=True if fuzzy_movie_matches else False)
+            if image and node_label:
                 return f"Here is a Picture of {node_label}\n image:{image}"
             return f"Sorry, I don't find any image for {node_label}."
         # ************MULTIMEDIA************
