@@ -2,6 +2,7 @@ import logging
 
 from question_types.sparql import SparqlQueries
 from question_types.factual import FactualQuestions
+from question_types.recommendation_two import Recommender
 from speakeasypy.openapi.client.rest import logger
 
 logging.basicConfig(
@@ -13,10 +14,17 @@ logging.basicConfig(
 class AgentService:
 
     def __init__(self):
-        # self.__sparql = SparqlQueries("../dataset/minimal_graph.nt")
+
+        self.__recommender = Recommender(
+            db_path='../dataset/extended_graph_triples.pkl',
+            movie_data_path='../dataset/movie_db.json',
+            people_data_path='../dataset/people_db.json'
+        )
+
         self.__factual = FactualQuestions()
+
         self.__sparql = SparqlQueries("../dataset/14_graph.nt")
-        #self.test_queries()
+
         logger.info("READY TO ANSWER QUESTIONS")
 
     def react(self, message: str, last_message_user: str, last_message_agent: str) -> str:
@@ -42,7 +50,7 @@ class AgentService:
         return "Your query did not match anything."
 
     def execute_factual(self, query: str, last_message_user: str, last_message_agent: str) -> str:
-        answer = self.__factual.answer_query(query, last_message_user, last_message_agent)
+        answer = self.__factual.answer_query(query, last_message_user, last_message_agent, self.__recommender)
         return answer
 
     def test_queries(self):

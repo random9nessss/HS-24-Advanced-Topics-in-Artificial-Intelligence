@@ -22,6 +22,11 @@ class QueryClassifier:
             device=get_device()
         )
 
+        self.intent_labels = [
+            "Recommendation",
+            "Multimedia"
+        ]
+
         # Pre-compile regex patterns for greetings and small talk
         greeting_patterns = [
             r'\bhello\b', r'\bhi\b', r'\bhey\b', r'\bgreetings\b', r'\bhow are you\b',
@@ -38,6 +43,22 @@ class QueryClassifier:
             "tv show", "series", "episode", "season", "trailer", "sequel", "prequel", "franchise",
             "recommend", "suggest", "like", "similar to", "fan of", "propose", ""
         ]
+
+        # Multimedia keywords and phrases
+        self.multimedia_keywords = [
+            r'picture', r'image', r'poster', r'photo', r'show', r'look',
+            r'look like', r'show me', r'display', r'picture of', r'photo of'
+        ]
+        self.multimedia_regex = re.compile('|'.join(self.multimedia_keywords), re.IGNORECASE)
+
+        # Recommendation keywords and phrases
+        self.recommendation_keywords = [
+            r'recommend', r'propose', r'advise', r'like',
+            r'similar', r'suggest', r'could you recommend', r'suggestions',
+            r'what to watch', r'interested in', r'worth watching'
+        ]
+        self.recommendation_regex = re.compile('|'.join(self.recommendation_keywords), re.IGNORECASE)
+
 
     def is_greeting(self, query):
         """
@@ -99,3 +120,57 @@ class QueryClassifier:
         logging.debug(f"Zero-shot classification result: {result} - {top_score}")
 
         return top_label == "Movie-related question" and top_score >= threshold
+
+
+    def contains_keywords(self, query, pattern):
+        """
+        Checks if the query matches any keywords in the provided regex pattern.
+
+        Args:
+            query (str): The user's query.
+            pattern (re.Pattern): Compiled regex pattern of keywords.
+
+        Returns:
+            bool: True if a keyword match is found, False otherwise.
+        """
+        return bool(pattern.search(query))
+
+
+    def classify_intent(self, query, threshold=0.70):
+        """
+        Classifies the user's intent based on keywords and zero-shot classification.
+
+        Args:
+            query (str): The user's query.
+            threshold (float): Confidence threshold for classification.
+
+        Returns:
+            str: The classified intent ("Recommendation Request", "Multimedia Request", or "Other").
+        """
+        query = query.lower()
+
+        if self.contains_keywords(query, self.multimedia_regex):
+            logging.debug(f"Multimedia keywords detected in query: '{query}'")
+            return "Multimedia Request"
+
+        if self.contains_keywords(query, self.recommendation_regex):
+            logging.debug(f"Recommendation keywords detected in query: '{query}'")
+            return "Recommendation Request"
+
+        result = self.classifier(
+            query,
+            candidate_labels=self.intent_labels,
+            hypothesis_template="The user is asking for a {}.",
+            multi_label=False
+        )
+
+        top_label = result['labels'][0]
+        top_score = result['scores'][0]
+        logging.debug(f"Zero-shot classification result: {result}")
+
+        print(result)
+
+        if top_score >= threshold:
+            return top_label
+        else:
+            return "Other"

@@ -13,7 +13,6 @@ from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
 from models.query_classifier import QueryClassifier
-from question_types import recommendation
 
 from utils.utils import (
     measure_time,
@@ -42,10 +41,10 @@ class FactualQuestions:
         logger.info("GraphEmbeddings initialized.")
         self.qc = QueryClassifier()
         logger.info("QueryClassifier initialized.")
-        logger.info("FactualQuestions class initialized successfully.")
+        logger.info("...FactualQuestions class initialized successfully.")
 
     @measure_time
-    def answer_query(self, query: str, last_user_query: str, last_assistant_response: str) -> str:
+    def answer_query(self, query: str, last_user_query: str, last_assistant_response: str, recommender) -> str:
         logger.info(f"Query: {query}")
         normalized_query = self.db.normalize_string(query)
 
@@ -148,32 +147,10 @@ class FactualQuestions:
         else:
             pass
 
-
-
-
-        # ************RECOMMENDATION************
-        keywords = [
-            "recommend",
-            "propose",
-            "advise",
-            "offer",
-            "like",
-            "should",
-            "must",
-            "similar",
-            "suggest"
-        ]
-
-        if any([word for word in keywords if word in query]):
-            logger.info("Detected recommendation query.")
-            movies = recommendation.recommend(node_label, entity_id, context, self.db)
-            formatted_answer = f"Based on {node_label.title()}, I recommend:\n~ " + '\n~ '.join(
-                movies)
-            return formatted_answer
-        # ************RECOMMENDATION************
-
-
         # ************MULTIMEDIA************
+
+        #intent = self.qc.classify_intent(query)
+
         keywords = [
             "picture",
             "image",
@@ -190,6 +167,35 @@ class FactualQuestions:
                 return f"Here is a Picture of {node_label}\n image:{image}"
             return f"Sorry, I don't find any image for {node_label}."
         # ************MULTIMEDIA************
+
+        # ************RECOMMENDATION************
+        keywords = [
+            "recommend",
+            "propose",
+            "advise",
+            "offer",
+            "like",
+            "should",
+            "must",
+            "similar",
+            "suggest"
+        ]
+
+        if any([word for word in keywords if word in query]):
+            logger.info("Detected recommendation query.")
+            recommended_movies, identified_entities = recommender.recommend_movies(query)
+            logger.info(recommended_movies.replace("\n", ""))
+
+            formatted_recommendation = (
+                f"Based on your interest in: {identified_entities}\n\n"
+                f"I recommend the following movies:\n\n"
+                f"{recommended_movies}\n\n"
+                "Enjoy your movie time!"
+            )
+
+            return formatted_recommendation
+
+        # ************RECOMMENDATION************
 
 
         # Remove unused columns

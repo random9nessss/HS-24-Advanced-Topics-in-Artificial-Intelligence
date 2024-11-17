@@ -44,7 +44,7 @@ class SparqlQueries:
         logging.info("Initializing SparqlQueries class...")
         self.graph.parse(file_path, format='turtle')
         logging.info(f"Graph parsed")
-        logging.info("SparqlQueries class initialized successfully.")
+        logging.info("...SparqlQueries class initialized successfully.")
 
         self.schema_ddis = "<http://ddis.ch/atai/>"
         self.schema_wd = "<http://www.wikidata.org/entity/>"
