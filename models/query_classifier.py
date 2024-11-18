@@ -23,8 +23,9 @@ class QueryClassifier:
         )
 
         self.intent_labels = [
-            "Recommendation",
-            "Multimedia"
+            "recommendation",
+            "multimedia",
+            "other"
         ]
 
         # Pre-compile regex patterns for greetings and small talk
@@ -148,14 +149,6 @@ class QueryClassifier:
             str: The classified intent ("Recommendation Request", "Multimedia Request", or "Other").
         """
         query = query.lower()
-
-        if self.contains_keywords(query, self.multimedia_regex):
-            logging.debug(f"Multimedia keywords detected in query: '{query}'")
-            return "Multimedia Request"
-
-        if self.contains_keywords(query, self.recommendation_regex):
-            logging.debug(f"Recommendation keywords detected in query: '{query}'")
-            return "Recommendation Request"
 
         result = self.classifier(
             query,
