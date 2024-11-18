@@ -31,7 +31,7 @@ class Recommender:
     Recommender class that precomputes the graph and prefix trees and provides a method to recommend movies.
     """
 
-    def __init__(self, db_path, movie_data_path, people_data_path, min_title_length=5, min_name_length=5):
+    def __init__(self, db_path, movie_data_path, people_data_path, min_title_length=4, min_name_length=5):
         """
         Initialize the Recommender by constructing the graph and building prefix trees.
 
@@ -82,7 +82,7 @@ class Recommender:
         while i < len(tokens):
             match_found = False
             for entity_type, trie in self.tries.items():
-                match, end_index = trie.search(tokens, i)
+                match, end_index = trie.search_approximate(tokens, i, max_edits=1)
                 if match:
                     matched_entities[entity_type].append(match)
                     i = end_index + 1  # Move past the matched entity
@@ -112,11 +112,29 @@ class Recommender:
         with open(movie_data_path) as f:
             movie_data = json.load(f)
 
+        blacklist = [
+            "performance",
+            "watch",
+            "love",
+            "them",
+            "play",
+            "player",
+            "good",
+            "mother",
+            "nice",
+            "film",
+            "method",
+            "linked",
+            "string",
+            "message",
+            "after"
+        ]
+
         normalized_movie_titles = {}
         for movie_id, movie_title in movie_data.items():
             normalized_title = normalize_string(movie_title)
             title_length = len(normalized_title.replace(' ', ''))
-            if title_length >= min_title_length:
+            if title_length >= min_title_length and normalized_title not in blacklist:
                 normalized_movie_titles[normalized_title] = movie_title
 
         with open(people_data_path) as f:

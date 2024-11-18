@@ -72,3 +72,85 @@ class PrefixTree:
             return last_matching_entity, last_matching_index
         else:
             return None, start_index
+
+    def search_approximate(self, tokens, start_index, max_edits=1):
+        """
+        Search for the longest matching entity starting from a given index in the tokens list,
+        allowing for up to max_edits typos only if the total string length exceeds 5 characters.
+
+        Args:
+            tokens (list of str): The list of tokens to search within.
+            start_index (int): The index to start searching from.
+            max_edits (int): Maximum number of allowed typos.
+
+        Returns:
+            tuple: A tuple containing the matched entity (or None if no match)
+                   and the index where the match ends.
+        """
+        results = []
+
+        def recursive_search(node, current_index, edits_made, total_length):
+            if edits_made > max_edits:
+                return
+            if node.is_end_of_entity:
+                results.append((node.original_entity, current_index - 1))
+            if current_index >= len(tokens):
+                return
+            token = tokens[current_index]
+            for child_token, child_node in node.children.items():
+                new_total_length = total_length + len(child_token)
+                if child_token == token:
+                    # Exact match
+                    recursive_search(child_node, current_index + 1, edits_made, new_total_length)
+                elif new_total_length > 5 and is_within_edit_distance_one(token, child_token):
+                    # Approximate match allowed only if total length > 5
+                    recursive_search(child_node, current_index + 1, edits_made + 1, new_total_length)
+
+        recursive_search(self.root, start_index, 0, 0)
+
+        if results:
+            # Return the longest match (with the earliest start index in case of ties)
+            return max(results, key=lambda x: (x[1], -start_index))
+        else:
+            return None, start_index
+
+def is_within_edit_distance_one(s1, s2):
+    """
+    Check if two strings are within an edit distance of 1.
+
+    Args:
+        s1 (str): First string.
+        s2 (str): Second string.
+
+    Returns:
+        bool: True if the edit distance between s1 and s2 is less than or equal to 1.
+    """
+    if s1 == s2:
+        return True
+    len_s1, len_s2 = len(s1), len(s2)
+    if abs(len_s1 - len_s2) > 1:
+        return False
+    edits = 0
+    i = j = 0
+    while i < len_s1 and j < len_s2:
+        if s1[i] == s2[j]:
+            i += 1
+            j += 1
+        else:
+            edits += 1
+            if edits > 1:
+                return False
+            if len_s1 == len_s2:
+                # Replacement
+                i += 1
+                j += 1
+            elif len_s1 > len_s2:
+                # Deletion in s2 (s1 has extra character)
+                i += 1
+            else:
+                # Insertion in s1 (s2 has extra character)
+                j += 1
+    # Account for any remaining characters
+    if i < len_s1 or j < len_s2:
+        edits += 1
+    return edits <= 1

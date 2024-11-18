@@ -77,6 +77,37 @@ class FactualQuestions:
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
+        # ************RECOMMENDATION************
+        keywords = [
+            "recommend",
+            "propose",
+            "advise",
+            "offer",
+            "like",
+            "should",
+            "must",
+            "similar",
+            "suggest",
+            "star"
+        ]
+
+        if any([word for word in keywords if word in query.lower()]):
+            logger.info("Detected recommendation query.")
+            recommended_movies, identified_entities = recommender.recommend_movies(query)
+            logger.info(recommended_movies.replace("\n", ""))
+
+            formatted_recommendation = (
+                f"Based on your interest in: {identified_entities}\n\n"
+                f"I recommend the following movies:\n"
+                f"{recommended_movies}\n\n"
+                "Enjoy your movie time!"
+            )
+
+            return formatted_recommendation
+
+        # ************RECOMMENDATION************
+
+
         fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(normalized_query, self.db.people_names, self.db)
         fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(normalized_query, self.db.movie_names, self.db)
 
@@ -149,7 +180,8 @@ class FactualQuestions:
 
         # ************MULTIMEDIA************
 
-        #intent = self.qc.classify_intent(query)
+        intent = self.qc.classify_intent(query)
+        print(intent)
 
         keywords = [
             "picture",
@@ -159,7 +191,7 @@ class FactualQuestions:
             "show",
             "look"
         ]
-        if any([word for word in keywords if word in query]) and "imdb id" in context.columns and not context["imdb id"].isna().values[0]:
+        if any([word for word in keywords if word in query.lower()]) and "imdb id" in context.columns and not context["imdb id"].isna().values[0]:
             logger.info("Detected multimedia query.")
             imdb_id = context["imdb id"].values[0]
             image = self.db.get_image(imdb_id, is_movie=True if fuzzy_movie_matches else False)
@@ -167,35 +199,6 @@ class FactualQuestions:
                 return f"Here is a Picture of {node_label}\n image:{image}"
             return f"Sorry, I don't find any image for {node_label}."
         # ************MULTIMEDIA************
-
-        # ************RECOMMENDATION************
-        keywords = [
-            "recommend",
-            "propose",
-            "advise",
-            "offer",
-            "like",
-            "should",
-            "must",
-            "similar",
-            "suggest"
-        ]
-
-        if any([word for word in keywords if word in query]):
-            logger.info("Detected recommendation query.")
-            recommended_movies, identified_entities = recommender.recommend_movies(query)
-            logger.info(recommended_movies.replace("\n", ""))
-
-            formatted_recommendation = (
-                f"Based on your interest in: {identified_entities}\n\n"
-                f"I recommend the following movies:\n\n"
-                f"{recommended_movies}\n\n"
-                "Enjoy your movie time!"
-            )
-
-            return formatted_recommendation
-
-        # ************RECOMMENDATION************
 
 
         # Remove unused columns
