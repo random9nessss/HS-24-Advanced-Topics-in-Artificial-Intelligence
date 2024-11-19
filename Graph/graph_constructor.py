@@ -26,15 +26,13 @@ def construct_graph(db):
         "mpaa film rating"
     ]
 
-    # Filter the dataset for relevant predicates
     db_filtered = db[db.predicate_label.isin(relevant_predicates)].copy()
     db_filtered['object_label'] = db_filtered['object_label'].astype(str)
 
-    # Extract publication year from publication date
-    db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'publication_year'] = (
+    db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label'] = (
         db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label']
-        .apply(lambda x: x.split("-")[0])
-    )
+        .apply(lambda x: f"{(int(x.split('-')[0]) // 10) * 10}-{(int(x.split('-')[0]) // 10) * 10 + 9}"
+        if x.split('-')[0].isdigit() else None)
 
     # Initialize igraph Graph
     G = ig.Graph(directed=False)
