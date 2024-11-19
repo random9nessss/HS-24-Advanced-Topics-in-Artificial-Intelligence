@@ -2,7 +2,7 @@ import logging
 
 from question_types.sparql import SparqlQueries
 from question_types.factual import FactualQuestions
-from question_types.recommendation import Recommender
+from question_types.recommendation_two import Recommender
 from speakeasypy.openapi.client.rest import logger
 
 logging.basicConfig(

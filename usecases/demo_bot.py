@@ -3,7 +3,7 @@ from typing import List
 import time
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
-listen_freq = 2
+listen_frequery = 2
 
 
 class Agent:

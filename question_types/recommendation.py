@@ -166,7 +166,7 @@ class Recommender:
 
         return tries, movie_values
 
-    def rp_beta_recommendations_aggregate(self, entities, num_walks=300, walk_length_range=(2, 3), beta_range=(0, 0.05), top_n=20):
+    def rp_beta_recommendations_aggregate(self, entities, num_walks=300, walk_length_range=(2, 4), beta_range=(0, 0.05), top_n=20):
         """
         Generate movie recommendations based on random walks and beta attenuation.
 
@@ -228,7 +228,7 @@ class Recommender:
         recommendations = self.rp_beta_recommendations_aggregate(
             entities=extracted_entities,
             num_walks=300,
-            walk_length_range=(2, 3),
+            walk_length_range=(2, 4),
             beta_range=(0, 0.05),
             top_n=20
         )
