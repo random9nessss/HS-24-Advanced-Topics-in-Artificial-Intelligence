@@ -2,7 +2,7 @@ import logging
 
 from question_types.sparql import SparqlQueries
 from question_types.factual import FactualQuestions
-from question_types.recommendation_two import Recommender
+from question_types.recommendation import Recommender
 from speakeasypy.openapi.client.rest import logger
 
 logging.basicConfig(
@@ -71,7 +71,7 @@ class AgentService:
             PREFIX wd: <http://www.wikidata.org/entity/>   
             PREFIX wdt: <http://www.wikidata.org/prop/direct/>   
             PREFIX schema: <http://schema.org/>   
-            
+
             SELECT ?lbl WHERE {  
                 ?movie wdt:P31 wd:Q11424 .  
                 ?movie ddis:rating ?rating .  
@@ -85,7 +85,7 @@ class AgentService:
             PREFIX wd: <http://www.wikidata.org/entity/>   
             PREFIX wdt: <http://www.wikidata.org/prop/direct/>   
             PREFIX schema: <http://schema.org/>   
-            
+
             SELECT ?lbl WHERE {  
                 ?movie wdt:P31 wd:Q11424 .  
                 ?movie ddis:rating ?rating .  

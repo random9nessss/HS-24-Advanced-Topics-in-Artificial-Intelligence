@@ -189,3 +189,6 @@ venv
 /development/exports/
 /development/input/
 
+development/query_router/results/checkpoint-100/rng_state.pth
+development/query_router/results/checkpoint-100/scheduler.pt
+development/query_router/results/checkpoint-100/training_args.bin

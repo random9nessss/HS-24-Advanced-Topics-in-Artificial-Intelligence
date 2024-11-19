@@ -12,7 +12,6 @@ from models.ner import NERParser
 from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
-from models.query_classifier import QueryClassifier
 from models.query_routing import QueryRouter
 
 from utils.utils import (
@@ -87,7 +86,7 @@ class FactualQuestions:
         ###############
         if query_route == "recommendation":
             recommended_movies, identified_entities = recommender.recommend_movies(query)
-            logger.info(recommended_movies.replace("\n", ""))
+            logger.info(recommended_movies.replace("\n", " "))
 
             formatted_recommendation = (
                 f"Based on your interest in: {identified_entities}\n\n"
@@ -198,7 +197,6 @@ class FactualQuestions:
             "notable work": "acted in"
         }
         context = context.rename(columns={k: v for k, v in columns_to_rename.items() if k in context.columns})
-        # logger.debug(f"Context after renaming columns: {context.columns}")
 
         columns_to_duplicate = [("acted in", "played in"),
                                 ("acted in", "appeared in"),
