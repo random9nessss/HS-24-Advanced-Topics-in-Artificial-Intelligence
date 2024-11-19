@@ -13,6 +13,7 @@ from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
 from models.query_classifier import QueryClassifier
+from models.query_routing import QueryRouter
 
 from utils.utils import (
     measure_time,
@@ -27,6 +28,8 @@ from utils.utils import (
 class FactualQuestions:
     def __init__(self):
         logger.info("Initializing FactualQuestions class...")
+        self.qr = QueryRouter()
+        logger.info("QueryRouter initialized")
         self.db = DataBase()
         logger.info("Database initialized.")
         self.ner_parser = NERParser(lowercase=False)
@@ -47,6 +50,12 @@ class FactualQuestions:
     def answer_query(self, query: str, last_user_query: str, last_assistant_response: str, recommender) -> str:
         logger.info(f"Query: {query}")
         normalized_query = self.db.normalize_string(query)
+
+        ###############
+        # Routing TO DO: PLUG INTO INFERENCE PIPELINE
+        ###############
+        query_route = self.qr.predict(query)
+        logger.info(f"Query Routing: {query_route}")
 
         ###############
         # Domain Check
