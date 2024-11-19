@@ -33,7 +33,6 @@ def construct_graph(db):
         db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label']
         .apply(lambda x: f"{(int(x.split('-')[0]) // 10) * 10}-{(int(x.split('-')[0]) // 10) * 10 + 9}"
         if x.split('-')[0].isdigit() else None)
-    )
 
     # Initialize igraph Graph
     G = ig.Graph(directed=False)
