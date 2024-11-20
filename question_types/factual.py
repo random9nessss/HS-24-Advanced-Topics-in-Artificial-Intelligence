@@ -42,8 +42,6 @@ class FactualQuestions:
         logger.info("ConversationAgent initialized.")
         self.ge = GraphEmbeddings(graph=self.db.db)
         logger.info("GraphEmbeddings initialized.")
-        # self.qc = QueryClassifier()
-        # logger.info("QueryClassifier initialized.")
         logger.info("...FactualQuestions class initialized successfully.")
 
     @measure_time
