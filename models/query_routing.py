@@ -36,7 +36,7 @@ class QueryRouter:
         """
         # Tokenization and Encoding of Query
         inputs = self.tokenizer.encode_plus(
-            query,
+            query.lower(),
             add_special_tokens=True,
             max_length=128,
             padding='max_length',

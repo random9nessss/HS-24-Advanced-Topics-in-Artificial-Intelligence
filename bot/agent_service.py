@@ -18,7 +18,8 @@ class AgentService:
         self.__recommender = Recommender(
             db_path='../dataset/extended_graph_triples.pkl',
             movie_data_path='../dataset/movie_db.json',
-            people_data_path='../dataset/people_db.json'
+            people_data_path='../dataset/people_db.json',
+            genre_data_path='../dataset/genre_db.json'
         )
 
         self.__factual = FactualQuestions()

@@ -31,7 +31,7 @@ class Recommender:
     Recommender class that precomputes the graph and prefix trees and provides a method to recommend movies.
     """
 
-    def __init__(self, db_path, movie_data_path, people_data_path, min_title_length=4, min_name_length=5):
+    def __init__(self, db_path, movie_data_path, people_data_path, genre_data_path, min_title_length=4, min_name_length=5):
         """
         Initialize the Recommender by constructing the graph and building prefix trees.
 
@@ -48,7 +48,7 @@ class Recommender:
         # Construct the graph
         self.G_nx = construct_graph(self.db)
         # Build prefix trees and get movie values
-        self.tries, self.movie_values = self.build_prefix_trees(movie_data_path, people_data_path, min_title_length, min_name_length)
+        self.tries, self.movie_values = self.build_prefix_trees(movie_data_path, people_data_path, genre_data_path, min_title_length, min_name_length)
         logger.info("...Recommender class initialized successfully")
 
     @staticmethod
@@ -95,13 +95,14 @@ class Recommender:
             extracted_entities.update(entity_list)
         return extracted_entities
 
-    def build_prefix_trees(self, movie_data_path, people_data_path, min_title_length=4, min_name_length=4):
+    def build_prefix_trees(self, movie_data_path, people_data_path, genre_data_path, min_title_length=4, min_name_length=4):
         """
         Build prefix trees for movies and people.
 
         Args:
             movie_data_path (str): Path to the movie data JSON file.
             people_data_path (str): Path to the people data JSON file.
+            genre_data_path (str): Path to the genre data JSON file.
             min_title_length (int): Minimum length of movie titles to include.
             min_name_length (int): Minimum length of people names to include.
 
@@ -127,7 +128,10 @@ class Recommender:
             "linked",
             "string",
             "message",
-            "after"
+            "after",
+            "westen",
+            "what man",
+            "ryan"
         ]
 
         normalized_movie_titles = {}
@@ -157,9 +161,19 @@ class Recommender:
             name_tokens = normalized_name.split()
             people_trie.insert(name_tokens, original_name)
 
+        with open(genre_data_path) as f:
+            genre_data = json.load(f)
+
+        genre_trie = PrefixTree()
+        for genre in genre_data:
+            normalized_genre = normalize_string(genre)
+            genre_tokens = normalized_genre.replace("film", "").strip().split()
+            genre_trie.insert(genre_tokens, genre)
+
         tries = {
             'movies': movie_trie,
-            'people': people_trie
+            'people': people_trie,
+            'genres': genre_trie
         }
 
         movie_values = set(movie_data.values())

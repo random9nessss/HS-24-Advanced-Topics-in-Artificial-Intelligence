@@ -1,6 +1,7 @@
 import igraph as ig
 import networkx as nx
 from tqdm import tqdm
+import pandas as pd
 
 def construct_graph(db):
     """
@@ -34,6 +35,19 @@ def construct_graph(db):
         .apply(lambda x: f"{(int(x.split('-')[0]) // 10) * 10}-{(int(x.split('-')[0]) // 10) * 10 + 9}"
         if x.split('-')[0].isdigit() else None)
     )
+
+    db_filtered.loc[db_filtered['predicate_label'] == "genre", 'object_label'] = (
+        db_filtered.loc[db_filtered['predicate_label'] == "genre", 'object_label']
+        .str.replace("film", "", regex=False).str.strip()
+    )
+
+    animated_rows = db_filtered[
+        (db_filtered['predicate_label'] == "genre") &
+        (db_filtered['object_label'] == "animated")
+        ].copy()
+    animated_rows['object_label'] = "animation"
+
+    db_filtered = pd.concat([db_filtered, animated_rows], ignore_index=True)
 
     # Initialize igraph Graph
     G = ig.Graph(directed=False)

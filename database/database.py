@@ -119,8 +119,9 @@ class DataBase:
     @staticmethod
     def normalize_string(s):
         """Normalizes strings by removing non-ASCII characters, punctuation, and redundant spaces."""
-        return ' '.join(re.sub(r'[^\w\s]', '', unicodedata.normalize('NFKD', s.lower())
-                               .encode('ascii', 'ignore').decode('utf-8')).split())
+        normalized = unicodedata.normalize('NFKD', s.lower())
+        cleaned = re.sub(r'[^\w\s]', '', normalized.replace("'", "").replace('"', ''))
+        return ' '.join(cleaned.split())
 
     def fetch(self, entity_list, search_column):
         """Fetches relevant rows from the database where `search_column` matches values in `entity_list`."""
