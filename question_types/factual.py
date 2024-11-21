@@ -95,33 +95,22 @@ class FactualQuestions:
 
             return formatted_recommendation
 
-        fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(normalized_query, self.db.people_names,
-                                                                                 self.db)
-        fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(normalized_query, self.db.movie_names,
-                                                                              self.db)
+        fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(
+            normalized_query, self.db.people_names, self.db)
+        fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(
+            normalized_query, self.db.movie_names, self.db)
 
-        fuzzy_movie_matches = []
-        fuzzy_person_matches = []
         if movie_full_match and person_full_match:
-            if movie_match_length > person_match_length:
-                fuzzy_person_matches = []
-                fuzzy_movie_matches = [fuzzy_movie_match]
-            else:
-                fuzzy_movie_matches = []
-                fuzzy_person_matches = [fuzzy_person_match]
-
+            fuzzy_movie_matches = [fuzzy_movie_match] if movie_match_length > person_match_length else []
+            fuzzy_person_matches = [fuzzy_person_match] if person_match_length >= movie_match_length else []
         elif person_full_match:
-            fuzzy_movie_matches = []
-            fuzzy_person_matches = [fuzzy_person_match]
+            fuzzy_person_matches, fuzzy_movie_matches = [fuzzy_person_match], []
         elif movie_full_match:
-            fuzzy_person_matches = []
-            fuzzy_movie_matches = [fuzzy_movie_match]
+            fuzzy_person_matches, fuzzy_movie_matches = [], [fuzzy_movie_match]
+        else:
+            fuzzy_movie_matches = [] if person_match_length > movie_match_length else fuzzy_movie_match
+            fuzzy_person_matches = [] if movie_match_length >= person_match_length else fuzzy_person_match
 
-        elif len(fuzzy_movie_match) and len(fuzzy_person_match):
-            if person_match_length > movie_match_length:
-                fuzzy_movie_matches = []
-            else:
-                fuzzy_person_matches = []
 
         fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id")
         fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id")
@@ -189,6 +178,38 @@ class FactualQuestions:
         # Initial context for embeddings where original column names are required
         initial_context = context.copy()
 
+        # Iterate over the context and correct all predicate-object pairs that are incorrect
+        # If the predicate is wrong, remove the object string from the predicate's value
+        # If the object is wrong, replace the object with the correct object
+        # It is guaranteed to have only 1 row
+
+        ###############
+        # CROWD SOURCING
+        ###############
+        corrections = self.db.crowd_data.get(node_label, [])
+        reject, support = 0, 0
+        for orig_predicate, orig_object, corrected_predicate, corrected_object, voted_correct, voted_incorrect in corrections:
+            # Predicate correction: remove object from original and add to corrected
+            if orig_object == corrected_object:
+                context.loc[0, corrected_predicate] = context.loc[0, corrected_predicate].fillna("").str.cat(
+                    [f", {orig_object}"], sep=""
+                )
+                context.loc[0, orig_predicate] = context.loc[0, orig_predicate].fillna("").str.replace(
+                    fr"\b{orig_object}\b", "", regex=True
+                ).str.strip(", ")
+                reject, support = voted_incorrect, voted_correct
+
+
+            # Object correction: replace the object in the correct predicate
+            if orig_predicate == corrected_predicate:
+                context.loc[0, orig_predicate] = context.loc[0, orig_predicate].fillna("").str.replace(
+                    fr"\b{orig_object}\b", corrected_object, regex=True
+                )
+
+        crowd_source_comment = ""
+        if reject > support:
+            crowd_source_comment = f"\n[Crowd, inter-rater agreement {'MISSING'}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
+
         # Rename columns
         columns_to_rename = {
             "cast member": "movie cast",
@@ -238,4 +259,4 @@ class FactualQuestions:
 
         embedding_answer = self.ge.answer_query_embedding(initial_context, top_columns)
 
-        return f"Graph:\n{formatted_answer}\n\nEmbeddings:\n{embedding_answer}"
+        return f"Graph:\n{formatted_answer}{crowd_source_comment}\n\nEmbeddings:\n{embedding_answer}"

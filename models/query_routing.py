@@ -10,7 +10,7 @@ class QueryRouter:
         Args:
             model_path (str): Path to the directory where the fine-tuned model and tokenizer are saved.
         """
-        model_path = os.path.join(os.path.dirname(__file__), '../models/question_classifier_model')
+        model_path = os.path.join(os.path.dirname(__file__), 'question_classifier_model')
         model_path = os.path.abspath(model_path)
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
