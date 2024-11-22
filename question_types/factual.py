@@ -187,8 +187,14 @@ class FactualQuestions:
         # CROWD SOURCING
         ###############
         corrections = self.db.crowd_data.get(node_label, [])
-        reject, support = 0, 0
-        for orig_predicate, orig_object, corrected_predicate, corrected_object, voted_correct, voted_incorrect in corrections:
+        reject, support, inter_aggreement = 0, 0, 0
+        for orig_predicate, orig_object, corrected_predicate, corrected_object, voted_correct, voted_incorrect, aggreement in corrections:
+            logger.info(f"Original: {orig_predicate} - {orig_object}, Corrected: {corrected_predicate} - {corrected_object}")
+
+            if orig_predicate not in context.columns or orig_object not in context.columns:
+                logger.info(f"Original Predicate: {orig_predicate} or Corrected Predicate: {corrected_predicate} not found in context.")
+                continue
+
             # Predicate correction: remove object from original and add to corrected
             if orig_object == corrected_object:
                 context.loc[0, corrected_predicate] = context.loc[0, corrected_predicate].fillna("").str.cat(
@@ -197,7 +203,7 @@ class FactualQuestions:
                 context.loc[0, orig_predicate] = context.loc[0, orig_predicate].fillna("").str.replace(
                     fr"\b{orig_object}\b", "", regex=True
                 ).str.strip(", ")
-                reject, support = voted_incorrect, voted_correct
+                reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
 
 
             # Object correction: replace the object in the correct predicate
@@ -205,10 +211,11 @@ class FactualQuestions:
                 context.loc[0, orig_predicate] = context.loc[0, orig_predicate].fillna("").str.replace(
                     fr"\b{orig_object}\b", corrected_object, regex=True
                 )
+                reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
 
         crowd_source_comment = ""
         if reject > support:
-            crowd_source_comment = f"\n[Crowd, inter-rater agreement {'MISSING'}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
+            crowd_source_comment = f"\n[Crowd, inter-rater agreement {inter_aggreement}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
 
         # Rename columns
         columns_to_rename = {
