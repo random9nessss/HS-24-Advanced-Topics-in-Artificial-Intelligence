@@ -172,50 +172,32 @@ class FactualQuestions:
         ###############
 
         # Remove unused columns
-        elements_to_remove = ["image", "color", "sport"]
+        elements_to_remove = ["image", "color", "sport", "instance of"]
         context = context.drop(columns=elements_to_remove, errors='ignore')
 
         # Initial context for embeddings where original column names are required
         initial_context = context.copy()
 
-        # Iterate over the context and correct all predicate-object pairs that are incorrect
-        # If the predicate is wrong, remove the object string from the predicate's value
-        # If the object is wrong, replace the object with the correct object
-        # It is guaranteed to have only 1 row
 
         ###############
         # CROWD SOURCING
         ###############
-        corrections = self.db.crowd_data.get(node_label, [])
+        corrections = self.db.crowd_data.get(self.db.normalize_string(node_label), [])
         reject, support, inter_aggreement = 0, 0, 0
+        replaced_object, replaced_predicate = "", ""
         for orig_predicate, orig_object, corrected_predicate, corrected_object, voted_correct, voted_incorrect, aggreement in corrections:
             logger.info(f"Original: {orig_predicate} - {orig_object}, Corrected: {corrected_predicate} - {corrected_object}")
 
-            if orig_predicate not in context.columns or orig_object not in context.columns:
-                logger.info(f"Original Predicate: {orig_predicate} or Corrected Predicate: {corrected_predicate} not found in context.")
-                continue
+            logger.info(f"Set predicate '{corrected_predicate}' to '{corrected_object}'")
+            context[corrected_predicate] = corrected_object
 
-            # Predicate correction: remove object from original and add to corrected
-            if orig_object == corrected_object:
-                context.loc[0, corrected_predicate] = context.loc[0, corrected_predicate].fillna("").str.cat(
-                    [f", {orig_object}"], sep=""
-                )
-                context.loc[0, orig_predicate] = context.loc[0, orig_predicate].fillna("").str.replace(
-                    fr"\b{orig_object}\b", "", regex=True
-                ).str.strip(", ")
-                reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
+            if orig_predicate != corrected_predicate and orig_predicate in context.columns:
+                logger.info(f"Deleted predicate '{orig_predicate}' from context")
+                context.drop(columns=[orig_predicate], inplace=True)
 
-
-            # Object correction: replace the object in the correct predicate
-            if orig_predicate == corrected_predicate:
-                context.loc[0, orig_predicate] = context.loc[0, orig_predicate].fillna("").str.replace(
-                    fr"\b{orig_object}\b", corrected_object, regex=True
-                )
-                reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
-
-        crowd_source_comment = ""
-        if reject > support:
-            crowd_source_comment = f"\n[Crowd, inter-rater agreement {inter_aggreement}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
+            replaced_predicate = corrected_predicate
+            replaced_object = corrected_object
+            reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
 
         # Rename columns
         columns_to_rename = {
@@ -233,6 +215,10 @@ class FactualQuestions:
             if col_to_duplicate in context.columns:
                 context[col] = context[col_to_duplicate]
 
+        # loop trough columns and print value for first row
+        # for col in context.columns:
+        #     logger.info(f"Column: {col}, Value: {context[col].values[0]}")
+
         context.dropna(axis=1, inplace=True)
 
         query_filtered = filter_query(query, node_label)
@@ -247,6 +233,8 @@ class FactualQuestions:
         combined_columns = set(top_columns_embeddings + col_always_keep)
         top_columns = [col for col in combined_columns if col in context.columns]
         filtered_context_df = context[top_columns]
+
+        logger.info(f"Filtered context: {filtered_context_df}")
 
         answer = self.qa.query(query, filtered_context_df)
         formatted_answer = self.ca.generate_response(f"""You are a knowledgeable assistant specializing in movies. Your goal is to provide a clear and accurate response based on the given answer, ensuring it sounds natural and relevant to the user.
@@ -265,5 +253,10 @@ class FactualQuestions:
         logger.info(f"Final answer: '{formatted_answer}'")
 
         embedding_answer = self.ge.answer_query_embedding(initial_context, top_columns)
+
+        crowd_source_comment = ""
+        if reject > support and (replaced_predicate or replaced_object) and (replaced_predicate in formatted_answer or replaced_object in formatted_answer):
+            crowd_source_comment = f"\n[Crowd, inter-rater agreement {inter_aggreement}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
+
 
         return f"Graph:\n{formatted_answer}{crowd_source_comment}\n\nEmbeddings:\n{embedding_answer}"
