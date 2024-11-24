@@ -132,7 +132,10 @@ class Recommender:
             "westen",
             "what man",
             "ryan",
-            "others"
+            "others",
+            "loved",
+            "appearead",
+            "actors"
         ]
 
         normalized_movie_titles = {}
