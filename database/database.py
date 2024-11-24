@@ -57,9 +57,13 @@ class DataBase:
         self.map_people_movies(dataset_dir)
         self.movie_recommender_db = self.filter_relevant_movies()
 
+        ###############################
+        # CURRENTLY INACTIVE
+        ###############################
+
         # Load corrected crowd data
-        with open(dataset_dir / 'crowd_source.json') as f:
-            self.crowd_data = json.load(f)
+        #with open(dataset_dir / 'crowd_source.json') as f:
+        #    self.crowd_data = json.load(f)
 
 
     def get_image(self, imdb_id, is_movie=True):

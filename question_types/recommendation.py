@@ -131,7 +131,8 @@ class Recommender:
             "after",
             "westen",
             "what man",
-            "ryan"
+            "ryan",
+            "others"
         ]
 
         normalized_movie_titles = {}
