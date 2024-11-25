@@ -95,7 +95,7 @@ class Recommender:
             extracted_entities.update(entity_list)
         return extracted_entities
 
-    def build_prefix_trees(self, movie_data_path, people_data_path, genre_data_path, min_title_length=4, min_name_length=4):
+    def build_prefix_trees(self, movie_data_path, people_data_path, genre_data_path, min_title_length=4, min_name_length=4, min_genre_length=4):
         """
         Build prefix trees for movies and people.
 
@@ -135,7 +135,7 @@ class Recommender:
             "others",
             "loved",
             "appearead",
-            "actors"
+            "actors",
         ]
 
         normalized_movie_titles = {}
@@ -172,7 +172,9 @@ class Recommender:
         for genre in genre_data:
             normalized_genre = normalize_string(genre)
             genre_tokens = normalized_genre.replace("film", "").strip().split()
-            genre_trie.insert(genre_tokens, genre)
+
+            if len(normalized_genre) >= min_genre_length:
+                genre_trie.insert(genre_tokens, genre)
 
         tries = {
             'movies': movie_trie,
