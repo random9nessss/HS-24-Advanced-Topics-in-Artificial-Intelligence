@@ -136,6 +136,7 @@ class Recommender:
             "loved",
             "appearead",
             "actors",
+            "star"
         ]
 
         normalized_movie_titles = {}
