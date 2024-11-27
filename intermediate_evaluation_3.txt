@@ -92,7 +92,7 @@ Graph construction: 100%|██████████| 884762/884762 [00:14<00
 2024-11-27 10:25:06,477 | INFO | recommend_movies | Extracted Entities: {'full metal jacket'}
 2024-11-27 10:25:06,481 | INFO | answer_query | 1) apocalypse now redux 2) stanley kubrick a life in pictures 3) joe and max 4) apocalypse now 5) eyes wide shut
 2024-11-27 10:25:06,481 | INFO | wrapper | Execution time for answer_query: 0.0747 seconds
-	2024-11-27 10:28:50,407 | INFO | answer_query | Query: Given that I like Kung Fu Panda, can you recommend some movies?
+2024-11-27 10:28:50,407 | INFO | answer_query | Query: Given that I like Kung Fu Panda, can you recommend some movies?
 2024-11-27 10:28:50,448 | INFO | answer_query | Query Routing: recommendation
 2024-11-27 10:28:50,501 | INFO | recommend_movies | Extracted Entities: {'kung fu panda'}
 2024-11-27 10:28:50,506 | INFO | answer_query | 1) flashback 2) alvin and the chipmunks chipwrecked 3) the little prince 4) kung fu panda 2 5) alvin and the chipmunks the squeakquel
