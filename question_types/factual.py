@@ -189,6 +189,30 @@ class FactualQuestions:
         # Initial context for embeddings where original column names are required
         initial_context = context.copy()
 
+
+        ###############
+        # CROWD SOURCING
+        ###############
+        corrections = self.db.crowd_data.get(self.db.normalize_string(node_label), [])
+        reject, support, inter_aggreement = 0, 0, 0
+        replaced_object, replaced_predicate = "", ""
+        for orig_predicate, orig_object, corrected_predicate, corrected_object, voted_correct, voted_incorrect, aggreement in corrections:
+            logger.info(f"Original: {orig_predicate} - {orig_object}, Corrected: {corrected_predicate} - {corrected_object}")
+
+            logger.info(f"Set predicate '{corrected_predicate}' to '{corrected_object}'")
+            context[corrected_predicate] = corrected_object
+
+            if orig_predicate != corrected_predicate and orig_predicate in context.columns:
+                logger.info(f"Deleted predicate '{orig_predicate}' from context")
+                context.drop(columns=[orig_predicate], inplace=True)
+
+            replaced_predicate = corrected_predicate
+            replaced_object = corrected_object
+            reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
+        ###############
+        # CROWD SOURCING - END
+        ###############
+
         # Rename columns
         columns_to_rename = {
             "cast member": "movie cast",
@@ -238,4 +262,16 @@ class FactualQuestions:
 
         embedding_answer = self.ge.answer_query_embedding(initial_context, top_columns)
 
-        return f"Graph:\n{formatted_answer}\n\nEmbeddings:\n{embedding_answer}"
+        ###############
+        # CROWD SOURCING - We should replace this with a more sophisticated approach
+        # If the corrected predicate or object is in the answer, we should add a comment
+        # With numbers I experienced here some issues with LLM, it did hallucinate
+        ###############
+        crowd_source_comment = ""
+        if reject > support and (replaced_predicate or replaced_object) and (replaced_predicate in formatted_answer or replaced_object in formatted_answer):
+            crowd_source_comment = f"\n[Crowd, inter-rater agreement {inter_aggreement}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
+        ###############
+        # CROWD SOURCING - END
+        ###############
+
+        return f"Graph:\n{formatted_answer}{crowd_source_comment}\n\nEmbeddings:\n{embedding_answer}"

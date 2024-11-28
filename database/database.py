@@ -62,9 +62,8 @@ class DataBase:
         ###############################
 
         # Load corrected crowd data
-        #with open(dataset_dir / 'crowd_source.json') as f:
-        #    self.crowd_data = json.load(f)
-
+        with open(dataset_dir / 'crowd_source.json') as f:
+            self.crowd_data = json.load(f)
 
     def get_image(self, imdb_id, is_movie=True):
         if imdb_id not in self.image_lookup:
