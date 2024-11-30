@@ -173,5 +173,26 @@ class DataBase:
 
         return pv_db
 
+    def get_movie_wikidata_id(self, movie_title):
+        """
+        Retrieve the Wikidata ID of a movie given its title.
+
+        Args:
+            movie_title (str): The title of the movie.
+
+        Returns:
+            str or None: The Wikidata ID of the movie if found, else None.
+        """
+        normalized_title = self.normalize_string(movie_title)
+
+        self.movie_db['normalized_label'] = self.movie_db['entity_label'].apply(self.normalize_string)
+
+        match = self.movie_db[self.movie_db['normalized_label'] == normalized_title]
+
+        if not match.empty:
+            return match.iloc[0]['entity_id']
+        else:
+            return None
+
 if __name__ == "__main__":
     db = DataBase()

@@ -16,7 +16,8 @@ def construct_graph(db):
     Returns:
     - G_nx: NetworkX Graph object
     """
-    # Relevant predicates
+
+    # Selected Predicates
     relevant_predicates = [
         "director",
         "performer",
@@ -49,7 +50,6 @@ def construct_graph(db):
 
     db_filtered = pd.concat([db_filtered, animated_rows], ignore_index=True)
 
-    # Initialize igraph Graph
     G = ig.Graph(directed=False)
     node_to_index = {}
     index_to_node = []
@@ -62,14 +62,24 @@ def construct_graph(db):
             G.add_vertex(name=node_label)
         return node_to_index[node_label]
 
-    # Prepare the data
     df = db_filtered.copy()
     df['object_label'] = df['object_label'].str.split(',')
     df = df.explode('object_label')
     df['object_label'] = df['object_label'].str.strip()
 
-    # Build edges
     edge_dict = {}
+    edge_predicates = {}
+
+    # Weighted Predicates
+    predicate_weights = {
+        "director": 5,
+        "genre": 5,
+        "screenwriter": 3,
+        "cast member": 1,
+        "performer": 2,
+        "publication date": 2,
+        "mpaa film rating": 2
+    }
 
     for _, row in tqdm(df.iterrows(), desc="Graph construction", total=len(df)):
         label = row['predicate_label']
@@ -80,20 +90,22 @@ def construct_graph(db):
         movie_index = get_or_add_node(movie)
 
         edge = (movie_index, value_index)
+        weight = predicate_weights.get(label, 1)
 
         if edge in edge_dict:
-            edge_dict[edge] += 1
+            edge_dict[edge] += weight
         else:
-            edge_dict[edge] = 1
+            edge_dict[edge] = weight
+            edge_predicates[edge] = label
 
-    # Add edges to the graph
     edges_to_add = list(edge_dict.keys())
     weights = list(edge_dict.values())
+    predicates = [edge_predicates[edge] for edge in edges_to_add]
 
     G.add_edges(edges_to_add)
     G.es["weight"] = weights
+    G.es["predicate_label"] = predicates
 
-    # Convert igraph to NetworkX
     G_nx = nx.Graph()
 
     for vertex in G.vs:
@@ -103,8 +115,14 @@ def construct_graph(db):
         source = edge.source
         target = edge.target
         weight = edge["weight"]
+        predicate_label = edge["predicate_label"]
         source_label = G.vs[source]["name"]
         target_label = G.vs[target]["name"]
-        G_nx.add_edge(source_label, target_label, weight=weight)
+        G_nx.add_edge(
+            source_label,
+            target_label,
+            weight=weight,
+            predicate_label=predicate_label
+        )
 
     return G_nx

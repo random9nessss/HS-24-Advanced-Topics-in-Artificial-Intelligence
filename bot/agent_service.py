@@ -22,9 +22,9 @@ class AgentService:
             genre_data_path='../dataset/genre_db.json'
         )
 
-        self.__factual = FactualQuestions()
-
         self.__sparql = SparqlQueries("../dataset/14_graph.nt")
+
+        self.__factual = FactualQuestions(self.__sparql)
 
         logger.info("READY TO ANSWER QUESTIONS")
 

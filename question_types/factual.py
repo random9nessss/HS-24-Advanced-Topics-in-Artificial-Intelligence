@@ -26,8 +26,9 @@ from utils.utils import (
 
 
 class FactualQuestions:
-    def __init__(self):
+    def __init__(self, sparql):
         logger.info("Initializing FactualQuestions class...")
+        self.sparql = sparql
         self.qr = QueryRouter()
         logger.info("QueryRouter initialized")
         self.db = DataBase()
@@ -43,6 +44,7 @@ class FactualQuestions:
         self.ge = GraphEmbeddings(graph=self.db.db)
         logger.info("GraphEmbeddings initialized.")
         logger.info("...FactualQuestions class initialized successfully.")
+
 
     @measure_time
     def answer_query(self, query: str, last_user_query: str, last_assistant_response: str, recommender) -> str:
@@ -79,17 +81,82 @@ class FactualQuestions:
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
-        ###############
-        # RECOMMENDATION
-        ###############
+        ########################
+        # RECOMMENDATION MODULE
+        ########################
         if query_route == "recommendation":
-            recommended_movies, identified_entities = recommender.recommend_movies(query)
-            logger.info(recommended_movies.replace("\n", " "))
+            recommended_movies, extracted_entities = recommender.recommend_movies(query)
+            logger.info(f"Recommended movies: {', '.join([m for m, _ in recommended_movies])}")
+
+            movies_with_details = []
+
+            user_people = extracted_entities.get('people', set())
+
+            for movie, score in recommended_movies:
+                wikidata_id = self.db.get_movie_wikidata_id(movie)
+                logger.info(f"Retrieved Wikidata ID for '{movie}': {wikidata_id}")
+
+                details = {}
+                if wikidata_id:
+                    try:
+                        details = self.sparql.get_movie_details(wikidata_id)
+                        #logger.info(f"Fetched details for '{movie}': {details}")
+
+                    except Exception as e:
+                        logger.error(f"Error fetching details for '{movie}' (Wikidata ID: {wikidata_id}): {e}")
+
+                else:
+                    logger.warning(f"Missing Wikidata ID for '{movie}'. Skipping details fetch.")
+
+                movies_with_details.append({
+                    'title': movie,
+                    'score': score,
+                    'details': details
+                })
+
+            movies_list = []
+            for i, movie_info in enumerate(movies_with_details):
+                details = movie_info['details']
+                director = details.get('director', 'Unknown')
+                genres = details.get('genres', 'Unknown')
+                pub_date = details.get('publication_date', 'Unknown')
+                imdb_url = details.get('imdb_url', 'Not Available')
+                cast = details.get('cast', '')
+
+                genre_label = "Genres" if ',' in genres else "Genre"
+
+                movie_entry = (
+                    f"{i + 1}) {movie_info['title']}\n"
+                    f"   Directed by: {director}\n"
+                    f"   {genre_label}: {genres}\n"
+                    f"   Release Date: {pub_date}\n"
+                )
+
+                if user_people and cast:
+                    cast_members = [member.strip().lower() for member in cast.split(',')]
+                    matching_cast = set(cast_members).intersection(user_people)
+                    matching_cast = [cast_member.capitalize() for cast_member in matching_cast]
+
+                    if matching_cast:
+                        cast_label = "Cast Member" if len(matching_cast) == 1 else "Cast Members"
+                        matching_cast_str = ', '.join(matching_cast)
+                        movie_entry += f"   {cast_label}: {matching_cast_str}\n"
+
+                movie_entry += f"   More Info: {imdb_url}\n"
+
+                movies_list.append(movie_entry)
+
+            movies_string = "\n".join(movies_list)
+
+            identified_entities = set()
+            for entity_set in extracted_entities.values():
+                identified_entities.update(entity_set)
+            entities_string = ", ".join(identified_entities) if identified_entities else "your preferences"
 
             formatted_recommendation = (
-                f"Based on your interest in: {identified_entities}\n\n"
-                f"I recommend the following movies:\n"
-                f"{recommended_movies}\n\n"
+                f"Based on your interest in: {entities_string}\n\n"
+                f"I recommend the following movies:\n\n"
+                f"{movies_string}\n"
                 "Enjoy your movie time!"
             )
 
