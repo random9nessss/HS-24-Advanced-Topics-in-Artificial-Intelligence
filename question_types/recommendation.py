@@ -49,6 +49,7 @@ class Recommender:
         self.G_nx = construct_graph(self.db)
         # Build prefix trees and get movie values
         self.tries, self.movie_values = self.build_prefix_trees(movie_data_path, people_data_path, genre_data_path, min_title_length, min_name_length)
+
         logger.info("...Recommender class initialized successfully")
 
     @staticmethod
@@ -256,7 +257,7 @@ class Recommender:
 
         recommended_movies = []
         for movie, score in recommendations:
-            if movie not in extracted_entities:
+            if movie not in extracted_entities and movie in self.movie_values:
                 recommended_movies.append((movie, score))
             if len(recommended_movies) >= top_n:
                 break
