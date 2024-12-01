@@ -222,11 +222,12 @@ class Recommender:
         # Dynamic Edge Weight Adjustment
         dynamic_weights = base_predicate_weights.copy()
 
-        if 'people' in entity_types:
+        if 'people' in entity_types and 'genres' in entity_types:
             dynamic_weights["cast member"] += 4
+            dynamic_weights["genre"] += 3
 
-        if 'genres' in entity_types:
-            dynamic_weights["genre"] += 4
+        if 'genres' in entity_types and not 'people' in entity_types:
+            dynamic_weights["genre"] += 7
 
         if 'movies' in entity_types:
             dynamic_weights["director"] += 2
