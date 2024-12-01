@@ -1,11 +1,11 @@
-# recommender.py
-
 import random
+import math
 import json
 import logging
 from collections import defaultdict
 import heapq
 import pandas as pd
+import datetime
 
 from PrefixTree.PrefixTree import PrefixTree
 from Graph.graph_constructor import construct_graph
@@ -47,9 +47,11 @@ class Recommender:
         # Load the database
         self.db = pd.read_pickle(db_path)
         # Construct the graph
-        self.G_nx = construct_graph(self.db)
+        self.G_nx, self.movie_release_years = construct_graph(self.db)
         # Build prefix trees and get movie values
         self.tries, self.movie_values = self.build_prefix_trees(movie_data_path, people_data_path, genre_data_path, min_title_length, min_name_length)
+        # Precomputed movie dictionary for faster returns
+        self.movie_details = self.build_movie_details()
 
         logger.info("...Recommender class initialized successfully")
 
@@ -67,6 +69,86 @@ class Recommender:
         normalized_query = normalize_string(query)
         tokens = normalized_query.split()
         return tokens
+
+    def build_movie_details(self):
+        """
+        Build a dictionary of movie details from the database.
+        Returns:
+            dict: A dictionary mapping movie titles to their details.
+        """
+        movie_details = {}
+        relevant_predicates = ["director", "genre", "publication date", "imdb id", "cast member"]
+        db_filtered = self.db[self.db['predicate_label'].isin(relevant_predicates)]
+
+        for movie_id, group in db_filtered.groupby('subject_id'):
+            movie_title = group['subject_label'].iloc[0]
+            details = {}
+            directors = set()
+            genres = set()
+            publication_dates = set()
+            imdb_ids = set()
+            cast_members = set()
+
+            for _, row in group.iterrows():
+                predicate = row['predicate_label']
+                obj = row['object_label']
+                if predicate == 'director':
+                    directors.add(obj)
+
+                elif predicate == 'genre':
+                    genres.update([genre.strip() for genre in obj.split(',')])
+
+                elif predicate == 'publication date':
+                    date = obj.split('T')[0]
+                    publication_dates.add(date)
+
+                elif predicate == 'imdb id':
+                    imdb_ids.add(obj)
+
+                elif predicate == 'cast member':
+                    cast_members.add(obj)
+
+            details['director'] = ', '.join(directors) if directors else 'Unknown'
+            details['genres'] = ', '.join(genres) if genres else 'Unknown'
+            details['publication_date'] = ', '.join(publication_dates) if publication_dates else 'Unknown'
+
+            if imdb_ids:
+                imdb_id = next(iter(imdb_ids))
+                details['imdb_url'] = f"https://www.imdb.com/title/{imdb_id}"
+                details['has_imdb_id'] = True
+            else:
+                details['imdb_url'] = 'Not Available'
+                details['has_imdb_id'] = False
+
+            details['cast'] = ', '.join(cast_members) if cast_members else 'Unknown'
+            details['subject_id'] = movie_id
+            details['title'] = movie_title
+
+            if movie_title in movie_details:
+                movie_details[movie_title].append(details)
+
+            else:
+                movie_details[movie_title] = [details]
+
+        # Handle duplicate movie titles -> e.g family film
+        final_movie_details = {}
+        for title, details_list in movie_details.items():
+            def sort_key(d):
+                has_imdb = d['has_imdb_id']
+                pub_date = d['publication_date']
+
+                try:
+                    year = int(pub_date.split('-')[0])
+                except:
+                    year = 0
+                return (-int(has_imdb), -year)
+
+            sorted_details = sorted(details_list, key=sort_key)
+            best_details = sorted_details[0]
+            final_movie_details[title] = best_details
+
+        return final_movie_details
+
 
     def extract_entities(self, query):
         """
@@ -137,7 +219,8 @@ class Recommender:
             "appearead",
             "actors",
             "star",
-            "mystery"
+            "mystery",
+            "hercules"
         ]
 
         normalized_movie_titles = {}
@@ -230,9 +313,10 @@ class Recommender:
             dynamic_weights["genre"] += 7
 
         if 'movies' in entity_types:
-            dynamic_weights["director"] += 2
+            dynamic_weights["director"] += 3
             dynamic_weights["screenwriter"] += 1
-            dynamic_weights["genre"] += 2
+            dynamic_weights["genre"] += 4
+            dynamic_weights["mpaa film rating"] += 2
 
         if 'director' in entity_types:
             dynamic_weights["director"] += 4
@@ -300,10 +384,10 @@ class Recommender:
 
         recommendations = self.rp_beta_recommendations_aggregate(
             extracted_entities=extracted_entities,
-            num_walks=500,
+            num_walks=800,
             walk_length_range=(1, 3),
             beta_range=(0, 0.05),
-            top_n=20
+            top_n=40
         )
 
         entities = set()
@@ -312,7 +396,7 @@ class Recommender:
 
         recommended_movies = []
         for movie, score in recommendations:
-            if movie not in entities and movie in self.movie_values:
+            if movie not in entities and movie in self.movie_values and movie != "mystery":
                 recommended_movies.append((movie, score))
             if len(recommended_movies) >= top_n:
                 break
@@ -326,4 +410,26 @@ class Recommender:
                 if len(recommended_movies) >= top_n:
                     break
 
-        return recommended_movies, extracted_entities
+        # Recency Recommendations
+        # Favoring recent publications if no specific movies was mentioned
+        if not 'movies' in extracted_entities:
+            current_year = datetime.datetime.now().year
+            adjusted_recommendations = []
+            for movie, score in recommended_movies:
+                year = self.movie_release_years.get(movie)
+                if year:
+                    years_ago = current_year - year
+                    alpha = 0.1
+                    recency_factor = math.exp(-alpha * years_ago)
+                    adjusted_score = score * recency_factor
+                    adjusted_recommendations.append((movie, adjusted_score))
+                else:
+                    adjusted_recommendations.append((movie, score))
+
+            adjusted_recommendations.sort(key=lambda x: x[1], reverse=True)
+
+            final_recommendations = adjusted_recommendations[:top_n]
+        else:
+            final_recommendations = recommended_movies[:top_n]
+
+        return final_recommendations, extracted_entities

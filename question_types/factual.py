@@ -114,20 +114,14 @@ class FactualQuestions:
             user_people = extracted_entities.get('people', set())
 
             for movie, score in recommended_movies:
-                wikidata_id = self.db.get_movie_wikidata_id(movie)
-                logger.info(f"Retrieved Wikidata ID for '{movie}': {wikidata_id}")
 
-                details = {}
-                if wikidata_id:
-                    try:
-                        details = self.sparql.get_movie_details(wikidata_id)
-                        #logger.info(f"Fetched details for '{movie}': {details}")
-
-                    except Exception as e:
-                        logger.error(f"Error fetching details for '{movie}' (Wikidata ID: {wikidata_id}): {e}")
-
-                else:
-                    logger.warning(f"Missing Wikidata ID for '{movie}'. Skipping details fetch.")
+                details = recommender.movie_details.get(movie, {
+                    'director': 'Unknown',
+                    'genres': 'Unknown',
+                    'publication_date': 'Unknown',
+                    'imdb_url': 'Not Available',
+                    'cast': 'Unknown'
+                })
 
                 movies_with_details.append({
                     'title': movie,

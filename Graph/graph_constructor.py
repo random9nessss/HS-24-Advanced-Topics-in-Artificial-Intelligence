@@ -31,6 +31,39 @@ def construct_graph(db):
     db_filtered = db[db.predicate_label.isin(relevant_predicates)].copy()
     db_filtered['object_label'] = db_filtered['object_label'].astype(str)
 
+    selected_subject_ids = set()
+    movie_release_years = {}
+
+    for title, group in db_filtered.groupby('subject_label'):
+
+        group_with_imdb = group[group['predicate_label'] == 'imdb id']
+        if not group_with_imdb.empty:
+
+            preferred_id = group_with_imdb['subject_id'].iloc[0]
+        else:
+
+            group_with_pub_date = group[group['predicate_label'] == 'publication date']
+            if not group_with_pub_date.empty:
+
+                group_with_pub_date['year'] = group_with_pub_date['object_label'].apply(
+                    lambda x: int(x.split('-')[0]) if x.split('-')[0].isdigit() else 0
+                )
+                preferred_id = group_with_pub_date.sort_values('year', ascending=False)['subject_id'].iloc[0]
+            else:
+                preferred_id = group['subject_id'].iloc[0]
+
+        selected_subject_ids.add(preferred_id)
+
+        pub_dates = group[group['subject_id'] == preferred_id][group['predicate_label'] == 'publication date']['object_label']
+        if not pub_dates.empty:
+            year_str = pub_dates.iloc[0].split('-')[0]
+            if year_str.isdigit():
+                movie_release_years[title] = int(year_str)
+
+    db_filtered = db_filtered[db_filtered['subject_id'].isin(selected_subject_ids)].copy()
+
+    publication_rows = db_filtered[db_filtered['predicate_label'] == "publication date"]
+
     db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label'] = (
         db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label']
         .apply(lambda x: f"{(int(x.split('-')[0]) // 10) * 10}-{(int(x.split('-')[0]) // 10) * 10 + 9}"
@@ -125,4 +158,4 @@ def construct_graph(db):
             predicate_label=predicate_label
         )
 
-    return G_nx
+    return G_nx, movie_release_years
