@@ -57,6 +57,10 @@ class DataBase:
         self.map_people_movies(dataset_dir)
         self.movie_recommender_db = self.filter_relevant_movies()
 
+        self.crowd_questions_df = pd.read_csv(dataset_dir / 'crowdsourcer_precomputed.csv')
+        self.crowd_questions = self.crowd_questions_df['question'].str.lower().tolist()
+        self.crowd_answers = self.crowd_questions_df['answer'].tolist()
+
         ###############################
         # CURRENTLY INACTIVE
         ###############################

@@ -14,6 +14,8 @@ from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
 from models.query_routing import QueryRouter
 
+from sentence_transformers import util
+
 from utils.utils import (
     measure_time,
     filter_query,
@@ -43,7 +45,26 @@ class FactualQuestions:
         logger.info("ConversationAgent initialized.")
         self.ge = GraphEmbeddings(graph=self.db.db)
         logger.info("GraphEmbeddings initialized.")
+        self.crowd_questions_embeddings = self.qe.embed_phrase(self.db.crowd_questions)
         logger.info("...FactualQuestions class initialized successfully.")
+
+
+    def classify_query(self, query):
+        """
+        Classify a query as crowdsourcing or factual based on sentence similarity.
+        """
+        # Lowercase the query
+        query_lower = query.lower()
+        query_embedding = self.qe.embed_phrase(query_lower)
+        similarities = util.pytorch_cos_sim(query_embedding, self.crowd_questions_embeddings)
+
+        # Set threshold for classification
+        max_similarity = similarities.max().item()
+        logger.info(f"Max similarity with crowdsourcing questions: {max_similarity}")
+        if max_similarity > 0.9:  # Example threshold
+            return "crowdsourcing"
+        else:
+            return "factual"
 
 
     @measure_time
@@ -51,15 +72,15 @@ class FactualQuestions:
         logger.info(f"Query: {query.strip()}")
         normalized_query = self.db.normalize_string(query)
 
-        ###############
-        # ROUTING
-        ###############
+        ###############################################################################################################
+        # QUERY ROUTING
+        ###############################################################################################################
         query_route = self.qr.predict(query)
         logger.info(f"Query Routing: {query_route}")
 
-        ###############
+        ###############################################################################################################
         # SMALL TALK
-        ###############
+        ###############################################################################################################
         if query_route == "unrelated":
             last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
             small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
@@ -81,9 +102,9 @@ class FactualQuestions:
             logger.info(f"Generated small talk response: '{small_talk}'")
             return small_talk
 
-        ########################
+        ###############################################################################################################
         # RECOMMENDATION MODULE
-        ########################
+        ###############################################################################################################
         if query_route == "recommendation":
             recommended_movies, extracted_entities = recommender.recommend_movies(query)
             logger.info(f"Recommended movies: {', '.join([m for m, _ in recommended_movies])}")
@@ -162,6 +183,9 @@ class FactualQuestions:
 
             return formatted_recommendation
 
+        ###############################################################################################################
+        # Continuing for factual, crowdsourcing or multimedia
+
         fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(normalized_query, self.db.people_names,
                                                                                  self.db)
         fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(normalized_query, self.db.movie_names,
@@ -233,9 +257,9 @@ class FactualQuestions:
         else:
             pass
 
-        ###############
+        ###############################################################################################################
         # MULTIMEDIA
-        ###############
+        ###############################################################################################################
         if query_route == "multimedia":
             if "imdb id" in context.columns and not context["imdb id"].isna().values[0]:
                 logger.info("Detected multimedia query.")
@@ -245,40 +269,35 @@ class FactualQuestions:
                     return f"Here is a Picture of {node_label}\n image:{image}"
                 return f"Sorry, I don't find any image for {node_label}."
 
-        ###############
+        ###############################################################################################################
         # FACTUAL
-        ###############
+        ###############################################################################################################
 
+        # CROWD SOURCING CHECK
+        # Compute similarity between query and crowdsourcing questions
+        query_lower = query.lower()
+        query_embedding = self.qe.embed_phrase(query_lower)
+
+        similarities = self.qe.compute_similarity(query_embedding, self.crowd_questions_embeddings)
+        max_similarity = similarities.max()
+        logger.info(f"Max similarity with crowdsourcing questions: {max_similarity}")
+
+        ###############################################################################################################
+        # CROWDSOURCING
+        ###############################################################################################################
+        if max_similarity > 0.9:
+            index = similarities.argmax()
+            precomputed_answer = self.db.crowd_answers[index]
+            logger.info(f"Returning precomputed answer for crowdsourcing question: {self.db.crowd_questions[index]}")
+            return precomputed_answer
+
+        # CONTINUE WITH FACTUAL ANSWERING
         # Remove unused columns
         elements_to_remove = ["image", "color", "sport"]
         context = context.drop(columns=elements_to_remove, errors='ignore')
 
         # Initial context for embeddings where original column names are required
         initial_context = context.copy()
-
-
-        ###############
-        # CROWD SOURCING
-        ###############
-        corrections = self.db.crowd_data.get(self.db.normalize_string(node_label), [])
-        reject, support, inter_aggreement = 0, 0, 0
-        replaced_object, replaced_predicate = "", ""
-        for orig_predicate, orig_object, corrected_predicate, corrected_object, voted_correct, voted_incorrect, aggreement in corrections:
-            logger.info(f"Original: {orig_predicate} - {orig_object}, Corrected: {corrected_predicate} - {corrected_object}")
-
-            logger.info(f"Set predicate '{corrected_predicate}' to '{corrected_object}'")
-            context[corrected_predicate] = corrected_object
-
-            if orig_predicate != corrected_predicate and orig_predicate in context.columns:
-                logger.info(f"Deleted predicate '{orig_predicate}' from context")
-                context.drop(columns=[orig_predicate], inplace=True)
-
-            replaced_predicate = corrected_predicate
-            replaced_object = corrected_object
-            reject, support, inter_aggreement = voted_incorrect, voted_correct, aggreement
-        ###############
-        # CROWD SOURCING - END
-        ###############
 
         # Rename columns
         columns_to_rename = {
@@ -329,16 +348,5 @@ class FactualQuestions:
 
         embedding_answer = self.ge.answer_query_embedding(initial_context, top_columns)
 
-        ###############
-        # CROWD SOURCING - We should replace this with a more sophisticated approach
-        # If the corrected predicate or object is in the answer, we should add a comment
-        # With numbers I experienced here some issues with LLM, it did hallucinate
-        ###############
-        crowd_source_comment = ""
-        if reject > support and (replaced_predicate or replaced_object) and (replaced_predicate in formatted_answer or replaced_object in formatted_answer):
-            crowd_source_comment = f"\n[Crowd, inter-rater agreement {inter_aggreement}, The answer distribution for this specific task was {support} support votes, {reject} reject votes]"
-        ###############
-        # CROWD SOURCING - END
-        ###############
+        return f"Graph:\n{formatted_answer}\n\nEmbeddings:\n{embedding_answer}"
 
-        return f"Graph:\n{formatted_answer}{crowd_source_comment}\n\nEmbeddings:\n{embedding_answer}"

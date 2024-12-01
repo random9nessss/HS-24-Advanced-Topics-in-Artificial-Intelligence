@@ -44,3 +44,18 @@ class QueryEmbedderContextualized:
             cached_embeddings.extend(new_embeddings)
 
         return cached_embeddings[0] if len(cached_embeddings) == 1 else np.array(cached_embeddings)
+
+
+    def compute_similarity(self, query_embedding, embeddings):
+        """
+        Computes cosine similarities between the query embedding and a set of embeddings.
+
+        Args:
+            query_embedding (np.ndarray): Embedding vector of the query (shape: D).
+            embeddings (np.ndarray): Embedding vectors of the phrases (shape: N x D).
+
+        Returns:
+            np.ndarray: Cosine similarity scores (shape: N).
+        """
+        similarities = np.dot(embeddings, query_embedding)
+        return similarities
