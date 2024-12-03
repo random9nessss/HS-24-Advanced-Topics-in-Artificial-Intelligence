@@ -44,6 +44,40 @@ class Recommender:
             min_name_length (int): Minimum length of people names to include.
         """
         logger.info("Initializing Recommender class...")
+        # Blacklisted movies
+        self.blacklist = [
+            "performance",
+            "watch",
+            "love",
+            "them",
+            "play",
+            "player",
+            "good",
+            "mother",
+            "nice",
+            "film",
+            "method",
+            "linked",
+            "string",
+            "message",
+            "after",
+            "westen",
+            "what man",
+            "ryan",
+            "others",
+            "loved",
+            "appearead",
+            "actors",
+            "star",
+            "mystery",
+            "hercules",
+            "family",
+            "flashback",
+            "lorenzo",
+            "romance",
+            "rhapsody in blue"
+        ]
+
         # Load the database
         self.db = pd.read_pickle(db_path)
         # Construct the graph
@@ -114,7 +148,7 @@ class Recommender:
 
             if imdb_ids:
                 imdb_id = next(iter(imdb_ids))
-                details['imdb_url'] = f"https://www.imdb.com/title/{imdb_id}"
+                details['imdb_url'] = f"imdb:{imdb_id}"
                 details['has_imdb_id'] = True
             else:
                 details['imdb_url'] = 'Not Available'
@@ -195,39 +229,11 @@ class Recommender:
         with open(movie_data_path) as f:
             movie_data = json.load(f)
 
-        blacklist = [
-            "performance",
-            "watch",
-            "love",
-            "them",
-            "play",
-            "player",
-            "good",
-            "mother",
-            "nice",
-            "film",
-            "method",
-            "linked",
-            "string",
-            "message",
-            "after",
-            "westen",
-            "what man",
-            "ryan",
-            "others",
-            "loved",
-            "appearead",
-            "actors",
-            "star",
-            "mystery",
-            "hercules"
-        ]
-
         normalized_movie_titles = {}
         for movie_id, movie_title in movie_data.items():
             normalized_title = normalize_string(movie_title)
             title_length = len(normalized_title.replace(' ', ''))
-            if title_length >= min_title_length and normalized_title not in blacklist:
+            if title_length >= min_title_length and normalized_title not in self.blacklist:
                 normalized_movie_titles[normalized_title] = movie_title
 
         with open(people_data_path) as f:
@@ -271,9 +277,11 @@ class Recommender:
 
         return tries, movie_values
 
-    def rp_beta_recommendations_aggregate(self, extracted_entities, num_walks=300, walk_length_range=(2, 3), beta_range=(0, 0.05), top_n=20):
+
+    def rp_beta_recommendations_aggregate(self, extracted_entities, num_walks=300, walk_length_range=(2, 3),
+                                          beta_range=(0, 0.05), top_n=20):
         """
-        Generate movie recommendations based on random walks with dynamic edge weights.
+        Generate movie recommendations based on random walks with dynamic edge weights and genre penalties.
 
         Args:
             extracted_entities (dict): Dictionary of entity types to sets of entities extracted from the query.
@@ -292,34 +300,46 @@ class Recommender:
 
         entity_types = set(extracted_entities.keys())
 
+        # Extract genres of the input entities
+        relevant_genres = set()
+        for entity in entities:
+            if entity in self.movie_details:
+                relevant_genres.update(self.movie_details[entity].get('genres', []))
+
         base_predicate_weights = {
-            "director": 5,
-            "genre": 5,
-            "screenwriter": 3,
-            "cast member": 1,
+            "director": 6,
+            "genre": 7,
+            "screenwriter": 4,
+            "cast member": 3,
             "performer": 2,
             "publication date": 2,
-            "mpaa film rating": 2
+            "mpaa film rating": 2,
+            "production company": 3,
+            "followed by": 5,
+            "follows": 5
         }
 
         # Dynamic Edge Weight Adjustment
         dynamic_weights = base_predicate_weights.copy()
 
         if 'people' in entity_types and 'genres' in entity_types:
-            dynamic_weights["cast member"] += 4
-            dynamic_weights["genre"] += 3
+            dynamic_weights["cast member"] += 3
+            dynamic_weights["genre"] += 4
 
         if 'genres' in entity_types and not 'people' in entity_types:
-            dynamic_weights["genre"] += 7
+            dynamic_weights["genre"] += 8
 
         if 'movies' in entity_types:
-            dynamic_weights["director"] += 3
-            dynamic_weights["screenwriter"] += 1
-            dynamic_weights["genre"] += 4
-            dynamic_weights["mpaa film rating"] += 2
+            dynamic_weights["director"] += 5
+            dynamic_weights["screenwriter"] += 2
+            dynamic_weights["genre"] += 3
+            dynamic_weights["mpaa film rating"] += 4
+            dynamic_weights["production company"] += 3
+            dynamic_weights["followed by"] += 8
+            dynamic_weights["follows"] += 6
 
         if 'director' in entity_types:
-            dynamic_weights["director"] += 4
+            dynamic_weights["director"] += 6
 
         max_weight = max(dynamic_weights.values())
         for key in dynamic_weights:
@@ -334,11 +354,13 @@ class Recommender:
         for entity in entities:
             if entity not in self.G_nx:
                 continue
+
             for _ in range(num_walks):
                 walk_length = random.randint(*walk_length_range)
                 beta = random.uniform(*beta_range)
                 path = [entity]
                 current_node = entity
+
                 for _ in range(walk_length):
                     neighbors = list(self.G_nx.neighbors(current_node))
                     if not neighbors:
@@ -367,6 +389,7 @@ class Recommender:
 
         return top_recommendations
 
+
     def recommend_movies(self, query, top_n=5):
         """
         Generate movie recommendations based on the user query.
@@ -384,10 +407,10 @@ class Recommender:
 
         recommendations = self.rp_beta_recommendations_aggregate(
             extracted_entities=extracted_entities,
-            num_walks=800,
-            walk_length_range=(1, 3),
+            num_walks=500,
+            walk_length_range=(2, 3),
             beta_range=(0, 0.05),
-            top_n=40
+            top_n=20
         )
 
         entities = set()
@@ -396,7 +419,7 @@ class Recommender:
 
         recommended_movies = []
         for movie, score in recommendations:
-            if movie not in entities and movie in self.movie_values and movie != "mystery":
+            if movie not in entities and movie in self.movie_values and movie not in self.blacklist:
                 recommended_movies.append((movie, score))
             if len(recommended_movies) >= top_n:
                 break
@@ -410,26 +433,4 @@ class Recommender:
                 if len(recommended_movies) >= top_n:
                     break
 
-        # Recency Recommendations
-        # Favoring recent publications if no specific movies was mentioned
-        if not 'movies' in extracted_entities:
-            current_year = datetime.datetime.now().year
-            adjusted_recommendations = []
-            for movie, score in recommended_movies:
-                year = self.movie_release_years.get(movie)
-                if year:
-                    years_ago = current_year - year
-                    alpha = 0.1
-                    recency_factor = math.exp(-alpha * years_ago)
-                    adjusted_score = score * recency_factor
-                    adjusted_recommendations.append((movie, adjusted_score))
-                else:
-                    adjusted_recommendations.append((movie, score))
-
-            adjusted_recommendations.sort(key=lambda x: x[1], reverse=True)
-
-            final_recommendations = adjusted_recommendations[:top_n]
-        else:
-            final_recommendations = recommended_movies[:top_n]
-
-        return final_recommendations, extracted_entities
+        return recommended_movies[:top_n], extracted_entities

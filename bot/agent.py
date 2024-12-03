@@ -13,6 +13,7 @@ class Agent:
         # Initialize the Speakeasy Python framework and login.
         self.speakeasy = Speakeasy(host=DEFAULT_HOST_URL, username=username, password=password)
         self.bot_service = AgentService()
+        self.speakeasy.login()  # This framework will help you log out automatically when the program terminates.
         self.last_messages = {}
         self.speakeasy.login()  # This framework will help you log out automatically when the program terminates.
 

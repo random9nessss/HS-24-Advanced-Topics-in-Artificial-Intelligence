@@ -3,6 +3,7 @@ import networkx as nx
 from tqdm import tqdm
 import pandas as pd
 
+
 def construct_graph(db):
     """
     Constructs a NetworkX graph from the provided dataset.
@@ -25,10 +26,21 @@ def construct_graph(db):
         "screenwriter",
         "cast member",
         "publication date",
-        "mpaa film rating"
+        "mpaa film rating",
+        "production company",
+        "followed by",
+        "follows",
+        "imdb id"
     ]
 
     db_filtered = db[db.predicate_label.isin(relevant_predicates)].copy()
+
+    # Added to just select movies
+    imdb_rows = db_filtered[
+        (db_filtered['predicate_label'] == 'imdb id') & db_filtered['object_label'].str.startswith('tt')]
+    valid_subject_ids = set(imdb_rows['subject_id'])
+    db_filtered = db_filtered[db_filtered['subject_id'].isin(valid_subject_ids)]
+
     db_filtered['object_label'] = db_filtered['object_label'].astype(str)
 
     selected_subject_ids = set()
@@ -37,9 +49,16 @@ def construct_graph(db):
     for title, group in db_filtered.groupby('subject_label'):
 
         group_with_imdb = group[group['predicate_label'] == 'imdb id']
-        if not group_with_imdb.empty:
 
-            preferred_id = group_with_imdb['subject_id'].iloc[0]
+        if not group_with_imdb.empty:
+            tt_ids = group_with_imdb[
+                group_with_imdb['subject_id'].str.startswith('tt')]  # Addded to just have movie titles
+
+            if not tt_ids.empty:
+                preferred_id = tt_ids['subject_id'].iloc[0]
+
+            else:
+                preferred_id = group_with_imdb['subject_id'].iloc[0]
         else:
 
             group_with_pub_date = group[group['predicate_label'] == 'publication date']
@@ -54,15 +73,14 @@ def construct_graph(db):
 
         selected_subject_ids.add(preferred_id)
 
-        pub_dates = group[group['subject_id'] == preferred_id][group['predicate_label'] == 'publication date']['object_label']
+        pub_dates = group[group['subject_id'] == preferred_id][group['predicate_label'] == 'publication date'][
+            'object_label']
         if not pub_dates.empty:
             year_str = pub_dates.iloc[0].split('-')[0]
             if year_str.isdigit():
                 movie_release_years[title] = int(year_str)
 
     db_filtered = db_filtered[db_filtered['subject_id'].isin(selected_subject_ids)].copy()
-
-    publication_rows = db_filtered[db_filtered['predicate_label'] == "publication date"]
 
     db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label'] = (
         db_filtered.loc[db_filtered['predicate_label'] == "publication date", 'object_label']
@@ -82,6 +100,8 @@ def construct_graph(db):
     animated_rows['object_label'] = "animation"
 
     db_filtered = pd.concat([db_filtered, animated_rows], ignore_index=True)
+
+    db_filtered = db_filtered[db_filtered.predicate_label != "imdb id"]
 
     G = ig.Graph(directed=False)
     node_to_index = {}
@@ -105,13 +125,16 @@ def construct_graph(db):
 
     # Weighted Predicates
     predicate_weights = {
-        "director": 5,
-        "genre": 5,
-        "screenwriter": 3,
-        "cast member": 1,
+        "director": 6,
+        "genre": 7,
+        "screenwriter": 4,
+        "cast member": 3,
         "performer": 2,
         "publication date": 2,
-        "mpaa film rating": 2
+        "mpaa film rating": 2,
+        "production company": 3,
+        "followed by": 5,
+        "follows": 5
     }
 
     for _, row in tqdm(df.iterrows(), desc="Graph construction", total=len(df)):
