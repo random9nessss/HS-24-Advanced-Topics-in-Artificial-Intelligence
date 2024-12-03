@@ -300,11 +300,23 @@ class Recommender:
 
         entity_types = set(extracted_entities.keys())
 
-        # Extract genres of the input entities
-        relevant_genres = set()
-        for entity in entities:
-            if entity in self.movie_details:
-                relevant_genres.update(self.movie_details[entity].get('genres', []))
+        if len(entities) > 1:
+            all_genres = []
+            all_directors = []
+            for entity in entities:
+                if entity in self.movie_details:
+                    details = self.movie_details[entity]
+                    all_genres.append(set(details.get('genres', '').split(', ')))
+                    all_directors.append(set(details.get('director', '').split(', ')))
+
+            common_genres = set.intersection(*all_genres) if all_genres else set()
+            common_directors = set.intersection(*all_directors) if all_directors else set()
+
+            if common_genres or common_directors:
+                logger.info("Using intersections for recommendations.")
+                entities.update({item for item in common_genres if item})
+                entities.update({item for item in common_directors if item})
+                logger.info(entities)
 
         base_predicate_weights = {
             "director": 6,
@@ -315,8 +327,8 @@ class Recommender:
             "publication date": 2,
             "mpaa film rating": 2,
             "production company": 3,
-            "followed by": 5,
-            "follows": 5
+            "followed by": 6,
+            "follows": 6
         }
 
         # Dynamic Edge Weight Adjustment
@@ -408,7 +420,7 @@ class Recommender:
         recommendations = self.rp_beta_recommendations_aggregate(
             extracted_entities=extracted_entities,
             num_walks=500,
-            walk_length_range=(2, 3),
+            walk_length_range=(1, 3),
             beta_range=(0, 0.05),
             top_n=20
         )

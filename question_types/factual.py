@@ -103,7 +103,7 @@ class FactualQuestions:
             return small_talk
 
         ###############################################################################################################
-        # RECOMMENDATION MODULE
+        # RECOMMENDATION
         ###############################################################################################################
         if query_route == "recommendation":
             recommended_movies, extracted_entities = recommender.recommend_movies(query)
@@ -137,6 +137,7 @@ class FactualQuestions:
                 pub_date = details.get('publication_date', 'Unknown')
                 imdb_url = details.get('imdb_url', 'Not Available')
                 cast = details.get('cast', '')
+
 
                 genre_label = "Genres" if ',' in genres else "Genre"
 
