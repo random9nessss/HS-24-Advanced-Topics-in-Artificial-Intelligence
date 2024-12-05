@@ -180,30 +180,19 @@ class FactualQuestions:
 
         ###############################################################################################################
         # Continuing for factual, crowdsourcing or multimedia
+        fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(
+            normalized_query, self.db.people_names, self.db)
+        fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(
+            normalized_query, self.db.movie_names, self.db)
 
-        fuzzy_person_match, person_full_match, person_match_length = fuzzy_match(normalized_query, self.db.people_names,
-                                                                                 self.db)
-        fuzzy_movie_match, movie_full_match, movie_match_length = fuzzy_match(normalized_query, self.db.movie_names,
-                                                                              self.db)
+        fuzzy_person_matches, fuzzy_movie_matches = [], []
 
-        fuzzy_movie_matches = []
-        fuzzy_person_matches = []
-        if movie_full_match and person_full_match:
-            if movie_match_length > person_match_length:
-                fuzzy_person_matches = []
+        if movie_full_match or person_full_match:
+            if movie_full_match and (not person_full_match or movie_match_length > person_match_length):
                 fuzzy_movie_matches = [fuzzy_movie_match]
-            else:
-                fuzzy_movie_matches = []
+            elif person_full_match:
                 fuzzy_person_matches = [fuzzy_person_match]
-
-        elif person_full_match:
-            fuzzy_movie_matches = []
-            fuzzy_person_matches = [fuzzy_person_match]
-        elif movie_full_match:
-            fuzzy_person_matches = []
-            fuzzy_movie_matches = [fuzzy_movie_match]
-
-        elif len(fuzzy_movie_match) and len(fuzzy_person_match):
+        elif fuzzy_movie_match and fuzzy_person_match:
             if person_match_length > movie_match_length:
                 fuzzy_movie_matches = []
             else:
@@ -243,12 +232,6 @@ class FactualQuestions:
         node_label = ""
         if "node label" in context.columns and not context["node label"].isna().values[0]:
             node_label = context["node label"].values[0]
-        else:
-            pass
-
-        entity_id = ""
-        if "subject_id" in context.columns and not context["subject_id"].isna().values[0]:
-            entity_id = context["subject_id"].values[0]
         else:
             pass
 
