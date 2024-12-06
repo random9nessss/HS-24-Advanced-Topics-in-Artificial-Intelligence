@@ -187,27 +187,37 @@ class Recommender:
     def extract_entities(self, query):
         """
         Extract entities from the query using the provided Prefix Trees.
-
-        Args:
-            query (str): The query string from which to extract entities.
-
-        Returns:
-            dict: A dictionary with entity types as keys and sets of extracted entities as values.
+        Prioritizes exact matches over approximate ones.
         """
         tokens = self.tokenize_query(query)
         matched_entities = defaultdict(set)
         i = 0
         while i < len(tokens):
-            match_found = False
+            exact_matches = []
+            approx_matches = []
+
             for entity_type, trie in self.tries.items():
-                match, end_index = trie.search_approximate(tokens, i, max_edits=1)
-                if match:
-                    matched_entities[entity_type].add(match)
-                    i = end_index + 1  # Move past the matched entity
-                    match_found = True
-                    break
-            if not match_found:
-                i += 1  # Move to the next token if no match
+                ematch, eend_index = trie.search_approximate(tokens, i, max_edits=0)
+                if ematch:
+                    exact_matches.append((entity_type, ematch, eend_index))
+
+            if not exact_matches:
+                for entity_type, trie in self.tries.items():
+                    amatch, aend_index = trie.search_approximate(tokens, i, max_edits=1)
+                    if amatch:
+                        approx_matches.append((entity_type, amatch, aend_index))
+
+            if exact_matches:
+                entity_type, match_val, end_index = exact_matches[0]
+                matched_entities[entity_type].add(match_val)
+                i = end_index + 1
+
+            elif approx_matches:
+                entity_type, match_val, end_index = approx_matches[0]
+                matched_entities[entity_type].add(match_val)
+                i = end_index + 1
+            else:
+                i += 1
 
         return matched_entities
 
@@ -314,8 +324,8 @@ class Recommender:
 
             if common_genres or common_directors:
                 logger.info("Using intersections for recommendations.")
-                entities.update({item for item in common_genres if item})
-                entities.update({item for item in common_directors if item})
+                entities.update({item for item in common_genres if item and item != "Unknown"})
+                entities.update({item for item in common_directors if item and item != "Unknown"})
                 logger.info(entities)
 
         base_predicate_weights = {
@@ -419,7 +429,7 @@ class Recommender:
 
         recommendations = self.rp_beta_recommendations_aggregate(
             extracted_entities=extracted_entities,
-            num_walks=500,
+            num_walks=300,
             walk_length_range=(1, 3),
             beta_range=(0, 0.05),
             top_n=20
