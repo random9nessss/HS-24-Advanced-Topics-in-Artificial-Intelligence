@@ -8,7 +8,6 @@ from rapidfuzz import process, fuzz
 
 from database.database import DataBase
 from models.graph_embeddings import GraphEmbeddings
-from models.ner import NERParser
 from models.query_embedder import QueryEmbedderContextualized
 from models.question_answering_agent import QuestionAnsweringAgent
 from models.conversation_agent import ConversationAgent
@@ -35,8 +34,6 @@ class FactualQuestions:
         logger.info("QueryRouter initialized")
         self.db = DataBase()
         logger.info("Database initialized.")
-        self.ner_parser = NERParser(lowercase=False)
-        logger.info("NERParser initialized.")
         self.qe = QueryEmbedderContextualized()
         logger.info("QueryEmbedderContextualized initialized.")
         self.qa = QuestionAnsweringAgent()
