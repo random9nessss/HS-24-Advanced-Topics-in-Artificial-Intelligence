@@ -3,7 +3,6 @@ import networkx as nx
 from tqdm import tqdm
 import pandas as pd
 
-
 def construct_graph(db):
     """
     Constructs a NetworkX graph from the provided dataset.

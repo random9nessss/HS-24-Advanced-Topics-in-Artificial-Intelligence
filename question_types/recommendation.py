@@ -272,6 +272,11 @@ class Recommender:
         genre_trie = PrefixTree()
         for genre in genre_data:
             normalized_genre = normalize_string(genre)
+
+            if normalized_genre == "animated":
+                genre_trie.insert(["animation"], "animated")
+                genre_trie.insert(["animated"], "animated")
+
             genre_tokens = normalized_genre.replace("film", "").strip().split()
 
             if len(normalized_genre) >= min_genre_length:
@@ -349,7 +354,7 @@ class Recommender:
             dynamic_weights["genre"] += 4
 
         if 'genres' in entity_types and not 'people' in entity_types:
-            dynamic_weights["genre"] += 8
+            dynamic_weights["genre"] += 10
 
         if 'movies' in entity_types:
             dynamic_weights["director"] += 5
@@ -427,6 +432,42 @@ class Recommender:
         extracted_entities = self.extract_entities(query)
         logger.info(f"Extracted Entities: {extracted_entities}")
 
+        # If user just prompted with one genre
+        if 'genres' in extracted_entities and len(extracted_entities) == 1:
+            genre = next(iter(extracted_entities['genres']))
+
+            filtered_movies = []
+            for movie, details in self.movie_details.items():
+                movie_genres = {g.strip().lower() for g in details.get('genres', '').split(',')}
+
+                if genre.lower() in movie_genres:
+                    score = 1.0
+                    if details.get('has_imdb_id'):
+                        score += 0.5
+
+                    pub_date = details.get('publication_date', 'Unknown').split('-')[0]
+                    try:
+                        year = int(pub_date)
+                    except:
+                        year = 0
+                    score += (year / 2020)
+
+                    filtered_movies.append((movie, score))
+
+            filtered_movies.sort(key=lambda x: x[1], reverse=True)
+            recommended_movies = [(m, s) for m, s in filtered_movies if m not in self.blacklist][:top_n]
+
+            if len(recommended_movies) < top_n:
+                additional_movies = [m for m in self.movie_values if m not in [rm[0] for rm in recommended_movies]]
+                random.shuffle(additional_movies)
+                for m in additional_movies:
+                    if len(recommended_movies) >= top_n:
+                        break
+                    recommended_movies.append((m, 0))
+
+            return recommended_movies, extracted_entities
+
+        # Recommendations if user prompted with more than just one genre
         recommendations = self.rp_beta_recommendations_aggregate(
             extracted_entities=extracted_entities,
             num_walks=300,
