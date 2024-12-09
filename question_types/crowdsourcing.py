@@ -64,10 +64,11 @@ class CrowdSourcing:
     def robust_token_correction(self, text):
         """
         Correct each token by fuzzy matching against self.known_tokens.
-        This ensures we deal with spelling variations before stopword removal or lemmatization.
         """
         text = text.lower()
+        text = text.translate(str.maketrans('', '', string.punctuation))
         tokens = word_tokenize(text)
+
         corrected_tokens = []
         for token in tokens:
             if token.isalpha():
@@ -84,9 +85,9 @@ class CrowdSourcing:
                 else:
                     corrected_tokens.append(token)
             else:
-
                 if token.isalnum():
                     corrected_tokens.append(token)
+
         return " ".join(corrected_tokens)
 
 
