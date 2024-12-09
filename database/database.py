@@ -49,6 +49,9 @@ class DataBase:
         self.entities = {**self.movie_data, **self.people_data}
         self.movie_names = self.movie_db["entity_label"].tolist()
         self.people_names = self.people_db["entity_label"].tolist()
+
+        self.__remove_ambiguous_names()
+
         self.entity_list = self.movie_names + self.people_names
 
         # Initialize mappings and recommender database
@@ -68,6 +71,35 @@ class DataBase:
         # Load corrected crowd data
         with open(dataset_dir / 'crowd_source.json') as f:
             self.crowd_data = json.load(f)
+
+    def __remove_ambiguous_names(self):
+        to_remove = [
+            "look",
+            "mask",
+            "movie",
+            "film",
+            "next",
+            "most",
+            "your",
+            "preferences",
+            "image",
+            "picture",
+            "poster",
+            "photo",
+            "angel",
+            "here",
+            "character",
+            "best",
+            "most",
+            "imagine",
+            "look",
+            "five",
+            "true",
+            "take"
+        ]
+
+        self.people_names = [name for name in self.people_names if name not in to_remove]
+        self.movie_names = [name for name in self.movie_names if name not in to_remove]
 
     def get_image(self, imdb_id, is_movie=True):
         if imdb_id not in self.image_lookup:
