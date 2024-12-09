@@ -27,7 +27,7 @@ from utils.utils import (
 
 
 class FactualQuestions:
-    def __init__(self, sparql):
+    def __init__(self, sparql, crowdsourcer):
         logger.info("Initializing FactualQuestions class...")
         self.sparql = sparql
         self.qr = QueryRouter()
@@ -42,26 +42,9 @@ class FactualQuestions:
         logger.info("ConversationAgent initialized.")
         self.ge = GraphEmbeddings(graph=self.db.db)
         logger.info("GraphEmbeddings initialized.")
-        self.crowd_questions_embeddings = self.qe.embed_phrase(self.db.crowd_questions)
+        self.crowdsourcing = crowdsourcer
+        logger.info("CrowdSourcing initialized.")
         logger.info("...FactualQuestions class initialized successfully.")
-
-
-    def classify_query(self, query):
-        """
-        Classify a query as crowdsourcing or factual based on sentence similarity.
-        """
-        # Lowercase the query
-        query_lower = query.lower()
-        query_embedding = self.qe.embed_phrase(query_lower)
-        similarities = util.pytorch_cos_sim(query_embedding, self.crowd_questions_embeddings)
-
-        # Set threshold for classification
-        max_similarity = similarities.max().item()
-        logger.info(f"Max similarity with crowdsourcing questions: {max_similarity}")
-        if max_similarity > 0.9:  # Example threshold
-            return "crowdsourcing"
-        else:
-            return "factual"
 
 
     @measure_time
@@ -248,24 +231,12 @@ class FactualQuestions:
         # FACTUAL
         ###############################################################################################################
 
-        # CROWD SOURCING CHECK
-        # Compute similarity between query and crowdsourcing questions
-        query_lower = query.lower()
-        query_embedding = self.qe.embed_phrase(query_lower)
-
-        similarities = self.qe.compute_similarity(query_embedding, self.crowd_questions_embeddings)
-        max_similarity = similarities.max()
-        logger.info(f"Max similarity with crowdsourcing questions: {max_similarity}")
-
-        ###############################################################################################################
         # CROWDSOURCING
-        ###############################################################################################################
-        if max_similarity > 0.9:
-            index = similarities.argmax()
-            precomputed_answer = self.db.crowd_answers[index]
-            logger.info(f"Returning precomputed answer for crowdsourcing question: {self.db.crowd_questions[index]}")
-            return precomputed_answer
+        crowd_response = self.crowdsourcing.classify_query(query)
 
+        if crowd_response != "factual":
+            return crowd_response
+        ###############################################################################################################
         # CONTINUE WITH FACTUAL ANSWERING
         # Remove unused columns
         elements_to_remove = ["image", "color", "sport"]

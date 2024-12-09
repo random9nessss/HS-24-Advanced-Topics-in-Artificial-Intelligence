@@ -3,6 +3,7 @@ import logging
 from question_types.sparql import SparqlQueries
 from question_types.factual import FactualQuestions
 from question_types.recommendation import Recommender
+from question_types.crowdsourcing import CrowdSourcing
 from speakeasypy.openapi.client.rest import logger
 
 logging.basicConfig(
@@ -22,9 +23,16 @@ class AgentService:
             genre_data_path='../dataset/genre_db.json'
         )
 
+        self.__crowdsourcing = CrowdSourcing(
+            correction_index_path='../dataset/correction_index.json',
+            qa_pairs_path='../dataset/qa_pairs.json',
+            recommender=self.__recommender,
+
+        )
+
         self.__sparql = SparqlQueries("../dataset/14_graph.nt")
 
-        self.__factual = FactualQuestions(self.__sparql)
+        self.__factual = FactualQuestions(self.__sparql, self.__crowdsourcing)
 
         logger.info("READY TO ANSWER QUESTIONS")
 
