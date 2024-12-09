@@ -101,6 +101,7 @@ class Recommender:
             list of str: A list of normalized tokens from the query.
         """
         normalized_query = normalize_string(query)
+        normalized_query = normalized_query.replace("animation", "animated")
         tokens = normalized_query.split()
         return tokens
 
@@ -189,6 +190,7 @@ class Recommender:
         Extract entities from the query using the provided Prefix Trees.
         Prioritizes exact matches over approximate ones.
         """
+
         tokens = self.tokenize_query(query)
         matched_entities = defaultdict(set)
         i = 0
@@ -273,9 +275,10 @@ class Recommender:
         for genre in genre_data:
             normalized_genre = normalize_string(genre)
 
-            if normalized_genre == "animated":
-                genre_trie.insert(["animation"], "animated")
-                genre_trie.insert(["animated"], "animated")
+            splitted_genre = normalized_genre.replace("film", "")
+
+            if splitted_genre == "animated":
+                genre_trie.insert(["animation"], genre)
 
             genre_tokens = normalized_genre.replace("film", "").strip().split()
 
