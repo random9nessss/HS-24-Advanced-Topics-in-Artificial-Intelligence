@@ -124,10 +124,10 @@ class CrowdSourcing:
 
         corrected_query = self.robust_token_correction(query)
         user_query_norm = self.normalize(corrected_query)
-        user_embedding = self.model.encode([user_query_norm], convert_to_tensor=True)
+        user_embedding = self.model.encode([user_query_norm], convert_to_tensor=True, show_progress_bar=False)
 
         qa_questions_norm = [self.normalize(self.robust_token_correction(p['question'])) for p in self.qa_pairs]
-        qa_embeddings = self.model.encode(qa_questions_norm, convert_to_tensor=True)
+        qa_embeddings = self.model.encode(qa_questions_norm, convert_to_tensor=True, show_progress_bar=False)
 
         cos_scores = util.pytorch_cos_sim(user_embedding, qa_embeddings).squeeze()
         max_score = float(cos_scores.max().cpu().item())
