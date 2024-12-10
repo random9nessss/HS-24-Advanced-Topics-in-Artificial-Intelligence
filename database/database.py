@@ -75,7 +75,7 @@ class DataBase:
     def __remove_ambiguous_names(self):
         to_remove = [
             "look",
-            "mask",
+            "the mask",
             "movie",
             "film",
             "next",
@@ -95,11 +95,12 @@ class DataBase:
             "look",
             "five",
             "true",
-            "take"
+            "take",
+            "mask"
         ]
 
-        self.people_names = [name for name in self.people_names if name not in to_remove]
-        self.movie_names = [name for name in self.movie_names if name not in to_remove]
+        self.people_names = [name for name in self.people_names if name.lower() not in to_remove and name]
+        self.movie_names = [name for name in self.movie_names if name.lower() not in to_remove and name]
 
     def get_image(self, imdb_id, is_movie=True):
         if imdb_id not in self.image_lookup:
