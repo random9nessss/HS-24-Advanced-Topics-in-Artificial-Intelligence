@@ -44,6 +44,7 @@ class Recommender:
             min_name_length (int): Minimum length of people names to include.
         """
         logger.info("Initializing Recommender class...")
+
         # Blacklisted movies
         self.blacklist = [
             "performance",
@@ -75,7 +76,8 @@ class Recommender:
             "flashback",
             "lorenzo",
             "romance",
-            "rhapsody in blue"
+            "rhapsody in blue",
+            "forest"
         ]
 
         # Load the database
@@ -223,6 +225,19 @@ class Recommender:
 
         return matched_entities
 
+    def insert_entity_with_fallback(self, trie, entity_tokens, original_entity):
+        """
+        Insert the original entity tokens, and also insert merged token variants as a fallback.
+        """
+        if len(entity_tokens) > 1:
+            for i in range(len(entity_tokens) - 1):
+                merged_tokens = (
+                        entity_tokens[:i]
+                        + [entity_tokens[i] + entity_tokens[i + 1]]
+                        + entity_tokens[i + 2:]
+                )
+                trie.insert(merged_tokens, original_entity)
+
     def build_prefix_trees(self, movie_data_path, people_data_path, genre_data_path, min_title_length=4, min_name_length=4, min_genre_length=4):
         """
         Build prefix trees for movies, people, and genres.
@@ -262,11 +277,13 @@ class Recommender:
         for normalized_title, original_title in normalized_movie_titles.items():
             title_tokens = normalized_title.split()
             movie_trie.insert(title_tokens, original_title)
+            self.insert_entity_with_fallback(movie_trie, title_tokens, original_title)
 
         people_trie = PrefixTree()
         for normalized_name, original_name in normalized_people_names.items():
             name_tokens = normalized_name.split()
             people_trie.insert(name_tokens, original_name)
+            self.insert_entity_with_fallback(people_trie, name_tokens, original_name)
 
         with open(genre_data_path) as f:
             genre_data = json.load(f)
