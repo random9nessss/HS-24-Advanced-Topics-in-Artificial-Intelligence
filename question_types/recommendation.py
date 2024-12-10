@@ -223,6 +223,23 @@ class Recommender:
             else:
                 i += 1
 
+        # Fallback search if no entities are found (neither exact nor approximate)
+        if not matched_entities:
+            i = 0
+            while i < len(tokens):
+                fallback_matches = []
+                for entity_type, trie in self.tries.items():
+                    fmatch, fend_index = trie.search_approximate_merged(tokens, i, max_edits=0, max_merge_levels=2)
+                    if fmatch:
+                        fallback_matches.append((entity_type, fmatch, fend_index))
+
+                if fallback_matches:
+                    entity_type, match_val, end_index = fallback_matches[0]
+                    matched_entities[entity_type].add(match_val)
+                    i = end_index + 1
+                else:
+                    i += 1
+
         return matched_entities
 
 

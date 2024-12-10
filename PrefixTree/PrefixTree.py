@@ -117,6 +117,64 @@ class PrefixTree:
         else:
             return None, start_index
 
+
+    def search_approximate_merged(self, tokens, start_index, max_edits=1, max_merge_levels=2):
+        """
+        Fallback search that tries merging multiple trie levels into one combined token
+        to match a single query token. This method is only invoked if exact and approximate search fails
+        due to too many false positives.
+        """
+        results = []
+
+        def recursive_merge(node, query_index, edits_made):
+            if edits_made > max_edits:
+                return
+
+            if query_index >= len(tokens):
+                if node.is_end_of_entity:
+                    results.append((node.original_entity, query_index - 1))
+                return
+
+            query_token = tokens[query_index]
+
+            for child_token, child_node in node.children.items():
+                if child_token == query_token:
+                    if child_node.is_end_of_entity and query_index == len(tokens) - 1:
+                        results.append((child_node.original_entity, query_index))
+                    recursive_merge(child_node, query_index + 1, edits_made)
+
+                elif len(child_token) > 5 and is_within_edit_distance_one(query_token, child_token):
+                    if child_node.is_end_of_entity and query_index == len(tokens) - 1:
+                        results.append((child_node.original_entity, query_index))
+                    recursive_merge(child_node, query_index + 1, edits_made + 1)
+
+            def try_multiple_children(current_node, child_path, depth):
+                if depth > max_merge_levels:
+                    return
+
+                combined = "".join(child_path)
+                total_length = sum(len(t) for t in child_path)
+
+                if child_path:
+                    if combined == query_token or (total_length > 5 and is_within_edit_distance_one(query_token, combined)):
+                        merged_node = current_node
+                        if query_index == len(tokens) - 1 and merged_node.is_end_of_entity:
+                            results.append((merged_node.original_entity, query_index))
+                        recursive_merge(merged_node, query_index + 1, edits_made + (1 if combined != query_token else 0))
+
+                for ctoken, cnode in current_node.children.items():
+                    try_multiple_children(cnode, child_path + [ctoken], depth + 1)
+
+            try_multiple_children(node, [], 0)
+
+        recursive_merge(self.root, start_index, 0)
+
+        if results:
+            return max(results, key=lambda x: (x[1], -start_index))
+        else:
+            return None, start_index
+
+
 def is_within_edit_distance_one(s1, s2):
     """
     Check if two strings are within an edit distance of 1.
