@@ -178,34 +178,46 @@ class FactualQuestions:
             else:
                 fuzzy_person_matches = []
 
-        fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id")
-        fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id")
+        fuzzy_movie_context = self.db.fetch(fuzzy_movie_matches, "subject_id", normalized=False)
+        fuzzy_person_context = self.db.fetch(fuzzy_person_matches, "subject_id", normalized=False)
 
         context = pd.concat([fuzzy_movie_context, fuzzy_person_context])
 
         if context.empty:
-            logger.warning("No context data found for the given query.")
+            logger.warning("No context data found for the given query using fuzzy matching.")
 
-            # Fallback Strategy
-            last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
-            small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
+            entities = recommender.extract_entities(query)
+            logger.info(f"Prefix Tree: {entities}")
+            people_entities = list(entities.get('people', []))
+            movie_entities = list(entities.get('movies', []))
 
-                                                    {f'Previous response: "{last_assistant_response}".' if last_assistant_response else ''}
+            people_context = self.db.fetch(people_entities, "subject_label", normalized=False)
+            movie_context = self.db.fetch(movie_entities, "subject_label", normalized=False)
 
-                                                    **User Query:** "{query}"
+            context = pd.concat([movie_context, people_context])
 
-                                                    **Note:** The previous response may not be related to the current user query.
+            if context.empty:
+                logger.warning("No context data found for the given query using prefix tree.")
+                # Fallback Strategy
+                last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
+                small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
+    
+                                                        {f'Previous response: "{last_assistant_response}".' if last_assistant_response else ''}
+    
+                                                        **User Query:** "{query}"
+    
+                                                        **Note:** The previous response may not be related to the current user query.
+    
+                                                        **Guidelines:**
+                                                        1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
+                                                        2. **Avoid Repetition:** Don’t repeat the user's words or re-ask recent questions.{f'As such do not respond with: "{last_assistant_response}".' if last_assistant_response else ''}
+                                                        3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
+    
+                                                        Provide an engaging, relevant, and natural response.
+                                                    """)
 
-                                                    **Guidelines:**
-                                                    1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
-                                                    2. **Avoid Repetition:** Don’t repeat the user's words or re-ask recent questions.{f'As such do not respond with: "{last_assistant_response}".' if last_assistant_response else ''}
-                                                    3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
-
-                                                    Provide an engaging, relevant, and natural response.
-                                                """)
-
-            logger.info(f"Generated small talk response: '{small_talk}'")
-            return small_talk
+                logger.info(f"Generated small talk response: '{small_talk}'")
+                return small_talk
 
         context = get_top_matches(context, normalized_query, top_n=1)
 

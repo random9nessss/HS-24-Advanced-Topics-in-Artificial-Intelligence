@@ -141,16 +141,13 @@ def is_within_edit_distance_one(s1, s2):
             if edits > 1:
                 return False
             if len_s1 == len_s2:
-                # Replacement
                 i += 1
                 j += 1
             elif len_s1 > len_s2:
-                # Deletion in s2 (s1 has extra character)
                 i += 1
             else:
-                # Insertion in s1 (s2 has extra character)
                 j += 1
-    # Account for any remaining characters
+
     if i < len_s1 or j < len_s2:
         edits += 1
     return edits <= 1

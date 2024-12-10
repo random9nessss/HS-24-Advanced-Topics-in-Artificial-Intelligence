@@ -167,9 +167,33 @@ class DataBase:
         cleaned = re.sub(r'[^\w\s]', '', normalized.replace("'", "").replace('"', ''))
         return ' '.join(cleaned.split())
 
-    def fetch(self, entity_list, search_column):
-        """Fetches relevant rows from the database where `search_column` matches values in `entity_list`."""
-        relevant = self.db[self.db[search_column].isin(entity_list)].dropna(axis=1)
+    def fetch(self, entity_list, search_column, normalized=False):
+        """
+        Fetches relevant rows from the database where `search_column` matches values in `entity_list`.
+
+        If normalized is True, both the entity_list and the search_column values in the database
+        are normalized before matching. This helps handle casing and punctuation differences.
+        """
+        import re
+
+        STOPWORDS = {"a", "an", "the", "of", "on", "and", "in", "at", "for", "to", "is", "it"}
+
+        def local_normalize(s):
+            s = s.lower()
+            s = re.sub(r'[^a-z0-9\s]', '', s)
+            return ' '.join(word for word in s.split() if word not in STOPWORDS)
+
+        if normalized:
+            norm_entity_list = [local_normalize(e) for e in entity_list]
+
+            norm_col = f"normalized_{search_column}"
+            if norm_col not in self.db.columns:
+                self.db[norm_col] = self.db[search_column].apply(local_normalize)
+
+            relevant = self.db[self.db[norm_col].isin(norm_entity_list)].dropna(axis=1)
+
+        else:
+            relevant = self.db[self.db[search_column].isin(entity_list)].dropna(axis=1)
 
         if relevant.empty:
             return pd.DataFrame()
