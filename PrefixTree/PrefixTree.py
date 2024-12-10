@@ -96,21 +96,24 @@ class PrefixTree:
                 results.append((node.original_entity, current_index - 1))
             if current_index >= len(tokens):
                 return
+
             token = tokens[current_index]
             for child_token, child_node in node.children.items():
                 new_total_length = total_length + len(child_token)
+
+                # Exact match
                 if child_token == token:
-                    # Exact match
                     recursive_search(child_node, current_index + 1, edits_made, new_total_length)
+
+                # Approximate match allowed only if total length > 5
                 elif new_total_length > 5 and is_within_edit_distance_one(token, child_token):
-                    # Approximate match allowed only if total length > 5
                     recursive_search(child_node, current_index + 1, edits_made + 1, new_total_length)
 
         recursive_search(self.root, start_index, 0, 0)
 
         if results:
-            # Return the longest match (with the earliest start index in case of ties)
             return max(results, key=lambda x: (x[1], -start_index))
+
         else:
             return None, start_index
 
