@@ -152,9 +152,30 @@ class FactualQuestions:
             formatted_recommendation = (
                 f"Based on your interest in: {entities_string}\n\n"
                 f"I recommend the following movies:\n\n"
-                f"{movies_string}\n"
-                "Enjoy your movie time!"
+                f"{movies_string}\n\n"
             )
+
+            basis = []
+            if extracted_entities.get('genres'):
+                basis.append("genres")
+
+            if extracted_entities.get('people'):
+                basis.append("directors/actors")
+
+            if extracted_entities.get('movies'):
+                basis.append("similar movies")
+
+            if basis:
+                if len(basis) == 1:
+                    basis_str = basis[0]
+                else:
+                    basis_str = ", ".join(basis[:-1]) + " and " + basis[-1]
+
+                formatted_recommendation += f"The recommendations are based on {basis_str}.\n\n"
+            else:
+                formatted_recommendation += "The recommendations are based on your preferences.\n\n"
+
+            formatted_recommendation += "Enjoy your movie time!"
 
             return formatted_recommendation
 
