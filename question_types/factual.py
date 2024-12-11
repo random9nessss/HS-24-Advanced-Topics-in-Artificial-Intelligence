@@ -69,7 +69,6 @@ class FactualQuestions:
                                                     **Guidelines:**
                                                     1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
                                                     2. **Avoid Repetition:** Don’t repeat the user's words.
-                                                    3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
 
                                                     Provide an engaging, relevant, and natural response.
                                                 """)
@@ -222,7 +221,6 @@ class FactualQuestions:
                                                         **Guidelines:**
                                                         1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
                                                         2. **Avoid Repetition:** Don’t repeat the user's words.
-                                                        3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
     
                                                         Provide an engaging, relevant, and natural response.
                                                     """)
