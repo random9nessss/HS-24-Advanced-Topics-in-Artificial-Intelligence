@@ -62,18 +62,13 @@ class FactualQuestions:
         # SMALL TALK
         ###############################################################################################################
         if query_route == "unrelated":
-            last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
             small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
-
-                                                    {f'Previous response: "{last_assistant_response}".' if last_assistant_response else ''}
 
                                                     **User Query:** "{query}"
 
-                                                    **Note:** The previous response may not be related to the current user query.
-
                                                     **Guidelines:**
                                                     1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
-                                                    2. **Avoid Repetition:** Don’t repeat the user's words or re-ask recent questions.{f'As such do not respond with: "{last_assistant_response}".' if last_assistant_response else ''}
+                                                    2. **Avoid Repetition:** Don’t repeat the user's words.
                                                     3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
 
                                                     Provide an engaging, relevant, and natural response.
@@ -220,18 +215,13 @@ class FactualQuestions:
             if context.empty:
                 logger.warning("No context data found for the given query using prefix tree.")
                 # Fallback Strategy
-                last_assistant_response = clean_response(last_assistant_response) if last_assistant_response else ""
                 small_talk = self.ca.generate_response(f"""You are a friendly and knowledgeable assistant engaged in a natural conversation. Respond to the User Query while following these guidelines:
-    
-                                                        {f'Previous response: "{last_assistant_response}".' if last_assistant_response else ''}
-    
+        
                                                         **User Query:** "{query}"
-    
-                                                        **Note:** The previous response may not be related to the current user query.
-    
+        
                                                         **Guidelines:**
                                                         1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
-                                                        2. **Avoid Repetition:** Don’t repeat the user's words or re-ask recent questions.{f'As such do not respond with: "{last_assistant_response}".' if last_assistant_response else ''}
+                                                        2. **Avoid Repetition:** Don’t repeat the user's words.
                                                         3. **Follow-up Sensitivity:** Acknowledge user replies without asking similar questions.
     
                                                         Provide an engaging, relevant, and natural response.
