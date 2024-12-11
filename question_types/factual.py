@@ -67,8 +67,7 @@ class FactualQuestions:
                                                     **User Query:** "{query}"
 
                                                     **Guidelines:**
-                                                    1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
-                                                    2. **Avoid Repetition:** Don’t repeat the user's words.
+                                                    1. **Avoid Repetition:** Don’t repeat the user's words.
 
                                                     Provide an engaging, relevant, and natural response.
                                                 """)
@@ -219,8 +218,7 @@ class FactualQuestions:
                                                         **User Query:** "{query}"
         
                                                         **Guidelines:**
-                                                        1. **Context Awareness:** Use previous messages only if directly relevant to the current query.
-                                                        2. **Avoid Repetition:** Don’t repeat the user's words.
+                                                        1. **Avoid Repetition:** Don’t repeat the user's words.
     
                                                         Provide an engaging, relevant, and natural response.
                                                     """)
