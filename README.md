@@ -1,4 +1,4 @@
-# Evaluation Event Final – *restless-bear*
+# Advanced Topics in Artificial Intelligence (ATAI) @UZH 2024
 
 **Authors:**  
 1. Sandrin Hunkeler
