@@ -1,8 +1,9 @@
 # Advanced Topics in Artificial Intelligence (ATAI) @UZH 2024
 
-**Authors:**  
-1. Sandrin Hunkeler
-2. Kevin Bründler
+**Course:** Advanced Topics in Artificial Intelligence  
+**University:** University of Zurich (UZH)  
+**Year:** 2024  
+**Authors:** Sandrin Hunkeler, Kevin Bründler
 
 ---
 
